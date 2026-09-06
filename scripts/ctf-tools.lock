@@ -25,7 +25,7 @@
         "pwntools": {"version": "4.15.0", "import": "pwn"},
         "ropper": {"version": "1.13.13", "import": "ropper"},
         "ROPgadget": {"version": "7.7", "import": "ropgadget"},
-        "capstone": {"version": "5.0.3", "import": "capstone"},
+        "capstone": {"version": "5.0.9", "import": "capstone"},
         "unicorn": {"version": "2.1.2", "import": "unicorn"},
         "qiling": {"version": "1.4.6", "import": "qiling"}
       },

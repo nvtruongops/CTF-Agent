@@ -132,7 +132,7 @@ RUN python3 -m venv --system-site-packages /root/.ctf-tools/venv && \
     dnslib==0.9.26 \
     # Pwn & Binary
     ROPgadget==7.7 \
-    capstone==5.0.3 \
+    capstone==5.0.9 \
     unicorn==2.1.2 \
     qiling==1.4.6 \
     # Reverse Engineering
