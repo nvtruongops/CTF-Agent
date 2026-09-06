@@ -233,7 +233,7 @@ class ParallelTriageScheduler:
             "recommendations": [],
         }
 
-        headers_agent = {"User-Agent": "CTF-Agent-Triage/1.1 (Security Lab Educational Scanner)"}
+        headers_agent = {"User-Agent": "CTF-Agent-Triage/1.3 (Security Lab Educational Scanner)"}
 
         def probe_head():
             req = urllib.request.Request(base_url, headers=headers_agent)

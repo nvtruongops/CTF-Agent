@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-CTF-Agent Distribution & Deployment Manager (v1.0)
+CTF-Agent Distribution & Deployment Manager (v1.3)
 Deploys CTF-Agent skills, rules, subagents, and scripts into any CTF competition workspace (.agents/)
 or globally into Antigravity user configuration (~/.gemini/config/).
 """

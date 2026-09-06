@@ -367,7 +367,7 @@ class ScopeGuard:
             raise ScopeViolationError(reason)
 
         return {
-            "version": "1.2",
+            "version": "1.3",
             "type": "educational_ctf_challenge",
             "scope": {
                 "target": target,
@@ -392,7 +392,7 @@ class ScopeGuard:
 
 
 def main():
-    parser = argparse.ArgumentParser(description="CTF-Agent Machine-Enforced Scope Guard v1.2")
+    parser = argparse.ArgumentParser(description="CTF-Agent Machine-Enforced Scope Guard v1.3")
     parser.add_argument("--validate-target", help="Check if target is inside authorized educational sandbox")
     parser.add_argument("--validate-cmd", help="Check if command contains prohibited or destructive actions")
     parser.add_argument("--create-sco", help="Generate a verified Security Context Object for target")

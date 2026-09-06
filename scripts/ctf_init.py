@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-CTF-Agent Preflight Environment Detector & Workspace Initializer (v1.0)
+CTF-Agent Preflight Environment Detector & Workspace Initializer (v1.3)
 Analyzes host capabilities, scores execution backends (WSL vs Docker),
 selects workload profiles, provisions workspaces, and verifies health.
 """

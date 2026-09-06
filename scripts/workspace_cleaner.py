@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-CTF Workspace Cleaner & Environment Sanitizer (v1.0)
+CTF Workspace Cleaner & Environment Sanitizer (v1.3)
 Cleans up temporary scratch scripts, ephemeral payloads, core dumps, and compiles artifacts.
 Supports two modes:
   --fast / --blitz: Quick sweep of temporary scratch/test files while preserving the winning solve script and original challenge assets.
