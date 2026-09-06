@@ -6,12 +6,18 @@
 
 ---
 
-## 1. OPERATIONAL PROFILES & MODES
+## 1. OPERATIONAL PROFILES & PROMPT MODES (TEXT FLAGS)
+
+> **Prompt Mode Rule**: Modes are **text flags** (e.g., `--fast`, `--blitz`, `--deep`, `--lab`) passed directly inside the chat prompt or slash commands (e.g., `/solve-challenge --mode blitz` or `/ctf-web --fast <target>`). AI agents automatically scan user prompt text for these flags and immediately adopt the matching operational profile. *(Note: in IDEs like Antigravity, `@` is for attaching files/symbols, while operational modes are specified as text flags in the prompt).*
 
 Strictly adhere to the designated profile:
 
 ### 1.1. Blitz / Speedrun Mode (`--blitz`, `--fast`, `@ctf-speedrun`)
 - **Target**: Active CTF competitions. **Primary Metric**: Time-to-Flag (First Blood).
+- **Prompt Invocation Examples**:
+  - `/ctf-web --fast http://challenge.url`
+  - `/solve-challenge --mode blitz ./pwn_challenge`
+  - `--blitz Solve this crypto challenge: c = ...`
 - **Stop-on-Flag (HALT immediately)**: The instant a verified flag matching the target regex is detected, **HALT ALL EXECUTION**. Do not probe additional endpoints or test alternative vectors.
 - **Display Flag Banner**: Print high-visibility flag banner:
   ```text
@@ -25,6 +31,10 @@ Strictly adhere to the designated profile:
 
 ### 1.2. Deep Analysis / Lab Mode (`--deep`, `--lab`, `@ctf-analyzer`)
 - **Target**: Labs, audits, research, and post-mortems. **Primary Metric**: Root Cause Analysis (RCA) & documentation.
+- **Prompt Invocation Examples**:
+  - `/ctf-pwn --deep ./vulnerable_binary`
+  - `/solve-challenge --mode deep ./web_lab`
+  - `--lab Perform exhaustive RCA on this smart contract`
 - **Exhaustive RCA**: Document exact memory layout, AST vulnerabilities, or cryptographic proofs.
 - **Directory Standardization**: Run `python3 scripts/workspace_cleaner.py --deep` to organize challenge assets into `resources/`.
 - **Comprehensive Writeup**: Invoke `/ctf-writeup` to author standard 5-section `writeup.md` with self-contained, reproducible `solve.py`.

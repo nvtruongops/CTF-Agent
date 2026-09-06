@@ -74,7 +74,13 @@
 
 ---
 
-## Operational Profiles & Specialized Agents
+## Operational Profiles & Specialized Modes (Text Flags)
+
+> [!TIP]
+> ### HOW MODES WORK (PROMPT TEXT FLAGS)
+> Operational modes (`--fast`, `--blitz`, `--deep`, `--lab`) are **instructional text flags** recognized by the Agent through [AGENTS.md](AGENTS.md).  
+> **How to use**: Simply write the flags as plain text in your chat prompt or combine them with slash commands (e.g. `/ctf-web --fast <url>` or `/solve-challenge --mode blitz <dir>`).  
+> *(Note: In Antigravity IDE, typing `@` searches files/symbols in the workspace; modes are passed directly as text flags in your prompt text).*
 
 `CTF-Agent` provides 3 specialized agent personas designed to eliminate multi-agent refusal cascades and optimize for both speedrun competitions and deep lab audits:
 
@@ -93,14 +99,21 @@
 └──────────────────────────┴───────────────────────────────┴──────────────────────────────────────┘
 ```
 
-### 1. Master Controller (`@ctf-controller`)
+### 1. Master Controller (`@ctf-controller` / `/solve-challenge`)
 Use as the primary entrypoint for complex multi-step labs or challenges.
+- **Prompt Examples**:
+  - `/solve-challenge http://challenge.ctf.site:8000`
+  - `/solve-challenge ./challenge_directory`
 - **Security Context & Task Envelope**: Wraps target endpoints or local lab files in machine-readable context objects (`security_context`, `task_envelope`) to prevent subagents from evaluating prompts with zero inherited context.
 - **Shallow Orchestration (Depth = 1)**: Dispatches directly to a single specialist skill or agent. Prohibits deep recursive agent chaining (`Agent A -> Agent B -> Agent C`).
 - **3-Tier Refusal Router**: Automatically classifies model refusals (Type A Wording, Type B Ambiguity, Type C Hard Policy) and shifts execution immediately to deterministic CLI tools without entering infinite paraphrasing loops.
 
-### 2. Blitz / Speedrun Mode (`@ctf-speedrun` / `--blitz`)
+### 2. Blitz / Speedrun Mode (`@ctf-speedrun` / `--blitz` / `--fast`)
 Use during active CTF competitions where time is points.
+- **Prompt Examples**:
+  - `/ctf-web --fast http://challenge.ctf.site:8080`
+  - `/solve-challenge --mode blitz ./pwn_challenge`
+  - `--blitz Solve this crypto puzzle: c = 12345, e = 3, n = 99999`
 - **Stop-on-Flag (HALT immediately)**: The instant a valid flag matching target regex (`flag{...}`, `picoCTF{...}`) is confirmed, all tool invocations and probing **stop immediately**.
 - **High-Visibility Flag Banner**:
   ```text
@@ -116,8 +129,12 @@ Use during active CTF competitions where time is points.
   Automatically removes temporary scratch files (`test*.py`, `fuzz*.py`, `tmp*`, `core.*`, `payload*.bin`), keeping only the original challenge files and the winning `solve.py`.
 - **Zero Overhead**: Does **not** invoke `ctf-writeup` and does **not** create `writeup.md`.
 
-### 3. Deep Analysis / Lab Mode (`@ctf-analyzer` / `--deep`)
+### 3. Deep Analysis / Lab Mode (`@ctf-analyzer` / `--deep` / `--lab`)
 Use when solving challenge labs (HackTheBox, PortSwigger, pwnable.tw), post-mortems, or security research.
+- **Prompt Examples**:
+  - `/ctf-pwn --deep ./vulnerable_binary`
+  - `/solve-challenge --mode deep ./web_lab`
+  - `--lab Perform deep root cause analysis and generate writeup`
 - **Root Cause Analysis (RCA)**: Deep analysis of memory corruption layouts, AST flaws, or cryptographic mathematical proofs.
 - **Directory Standardization**:
   ```bash
@@ -203,11 +220,11 @@ python scripts/install_as_agent.py --global
 ```
 
 ### Method 3: Direct Usage Within This Workspace
-This workspace already has `.agents/` linked and configured. You can start chatting directly:
-- Call `@ctf-controller` for master orchestration, Task Envelopes, and refusal-safe routing.
-- Call `@ctf-speedrun` for fast competition solving.
-- Call `@ctf-analyzer` for deep analysis and writeups.
-- Call `/solve-challenge --mode blitz` or `/solve-challenge --mode deep`.
+This workspace already has `.agents/` configured. You can start prompting directly using slash commands and text flags:
+- **Master Orchestrator**: `/solve-challenge <target-url-or-dir>`
+- **Speedrun / Blitz Mode (Fast Solve, Stop-on-Flag)**: `/solve-challenge --mode blitz <target>` or `/ctf-web --fast <target>` or `--blitz <prompt>`
+- **Deep Analysis Mode (RCA & Writeup)**: `/solve-challenge --mode deep <target>` or `/ctf-pwn --deep <target>` or `--lab <prompt>`
+- **Specific Category Skills**: `/ctf-web`, `/ctf-pwn`, `/ctf-crypto`, `/ctf-reverse`, `/ctf-forensics`, `/ctf-osint`, `/ctf-misc`, `/ctf-ai-ml`, `/ctf-malware`, `/ctf-writeup`
 
 ---
 

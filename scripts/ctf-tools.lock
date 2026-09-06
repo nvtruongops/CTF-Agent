@@ -30,8 +30,8 @@
         "qiling": {"version": "1.4.6", "import": "qiling"}
       },
       "gem": [
-        {"name": "one_gadget", "version": "4.0.0"},
-        {"name": "seccomp-tools", "version": "1.6.1"}
+        {"name": "one_gadget", "version": "2.1.1"},
+        {"name": "seccomp-tools", "version": "1.7.1"}
       ],
       "verify_bins": ["gdb", "patchelf", "checksec", "ROPgadget", "ropper", "one_gadget", "seccomp-tools"],
       "manual": ["pwndbg (https://github.com/pwndbg/pwndbg)"]
@@ -58,7 +58,7 @@
     "crypto": {
       "description": "Tier 2: Cryptanalysis, lattice reduction, number theory, and solvers",
       "apt": [
-        "sagemath", "pari-gp", "libgmp-dev", "libmpfr-dev", "libmpc-dev"
+        "pari-gp", "libgmp-dev", "libmpfr-dev", "libmpc-dev"
       ],
       "pip": {
         "pycryptodome": {"version": "3.23.0", "import": "Crypto"},
@@ -69,8 +69,8 @@
         "py_ecc": {"version": "8.0.0", "import": "py_ecc"},
         "hashpumpy": {"version": "1.2", "import": "hashpumpy"}
       },
-      "verify_bins": ["sage", "gp"],
-      "manual": ["RsaCtfTool (git clone https://github.com/RsaCtfTool/RsaCtfTool)"]
+      "verify_bins": ["gp"],
+      "manual": ["sagemath (optional via docker/conda)", "RsaCtfTool (git clone https://github.com/RsaCtfTool/RsaCtfTool)"]
     },
     "forensics": {
       "description": "Tier 2: Digital forensics, memory analysis, PCAP carvers, and file parsing",

@@ -325,7 +325,11 @@ install_gem_packages() {
     log_info "Gem: Installing $name ($ver)"
     if [ "$DRY_RUN" = true ]; then continue; fi
 
-    local cmd=(gem install "$name")
+    local cmd=()
+    if [ "$(id -u)" -ne 0 ] && command -v sudo >/dev/null 2>&1; then
+      cmd+=(sudo)
+    fi
+    cmd+=(gem install "$name" --no-document)
     if [ -n "$ver" ]; then cmd+=(-v "$ver"); fi
 
     if "${cmd[@]}" >>"${LOG_FILE:-/dev/null}" 2>&1; then
@@ -359,6 +363,15 @@ install_go_packages() {
     if [ "$DRY_RUN" = true ]; then continue; fi
 
     if go install "$spec" >>"${LOG_FILE:-/dev/null}" 2>&1; then
+      local gopath_bin
+      gopath_bin="$(go env GOPATH 2>/dev/null || echo "$HOME/go")/bin"
+      if [ -f "$gopath_bin/$bin" ]; then
+        if [ "$(id -u)" -eq 0 ]; then
+          cp -f "$gopath_bin/$bin" /usr/local/bin/ 2>/dev/null || true
+        elif command -v sudo >/dev/null 2>&1; then
+          sudo cp -f "$gopath_bin/$bin" /usr/local/bin/ 2>/dev/null || true
+        fi
+      fi
       SUCCEEDED+=("go:$bin")
     else
       log_warn "Go installation failed: $bin"
