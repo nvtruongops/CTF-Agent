@@ -213,6 +213,7 @@ class WorkspaceUpdater:
         dest_dir: Path,
         label: str,
         force: bool = False,
+        dry_run: bool = False,
     ) -> List[str]:
         """
         Surgically synchronizes a directory file-by-file with SHA-256 diffing.
@@ -224,35 +225,43 @@ class WorkspaceUpdater:
         if not src_dir.exists():
             return actions
 
-        dest_dir.mkdir(parents=True, exist_ok=True)
+        if not dry_run:
+            dest_dir.mkdir(parents=True, exist_ok=True)
         upstream_rel_paths = set()
 
         # 1. Inspect upstream files
         for src_file in src_dir.rglob("*"):
             if src_file.is_file():
+                if src_file.suffix == ".pyc" or "__pycache__" in src_file.parts:
+                    continue
                 rel = src_file.relative_to(src_dir)
                 upstream_rel_paths.add(rel)
                 target_file = dest_dir / rel
 
                 if not target_file.exists():
-                    target_file.parent.mkdir(parents=True, exist_ok=True)
-                    shutil.copy2(src_file, target_file)
-                    actions.append(f"Installed new {label}: {rel}")
+                    if not dry_run:
+                        target_file.parent.mkdir(parents=True, exist_ok=True)
+                        shutil.copy2(src_file, target_file)
+                    actions.append(f"{'Would install' if dry_run else 'Installed'} new {label}: {rel}")
                 else:
                     up_hash = cls.compute_file_hash(src_file)
                     loc_hash = cls.compute_file_hash(target_file)
                     if up_hash != loc_hash:
-                        bak_file = target_file.with_name(target_file.name + ".bak")
-                        shutil.copy2(target_file, bak_file)
-                        shutil.copy2(src_file, target_file)
-                        actions.append(f"Updated {label} with backup: {rel} (saved .bak)")
+                        if not dry_run:
+                            bak_file = target_file.with_name(target_file.name + ".bak")
+                            shutil.copy2(target_file, bak_file)
+                            shutil.copy2(src_file, target_file)
+                        actions.append(f"{'Would update' if dry_run else 'Updated'} {label}{' with backup' if not dry_run else ''}: {rel}{' (saved .bak)' if not dry_run else ''}")
 
         # 2. Inspect local directory for custom files
-        for loc_file in dest_dir.rglob("*"):
-            if loc_file.is_file():
-                rel = loc_file.relative_to(dest_dir)
-                if not str(rel).endswith(".bak") and rel not in upstream_rel_paths:
-                    actions.append(f"Preserved custom {label}: {rel}")
+        if dest_dir.exists():
+            for loc_file in dest_dir.rglob("*"):
+                if loc_file.is_file():
+                    if loc_file.suffix == ".pyc" or "__pycache__" in loc_file.parts:
+                        continue
+                    rel = loc_file.relative_to(dest_dir)
+                    if not str(rel).endswith(".bak") and rel not in upstream_rel_paths:
+                        actions.append(f"Preserved custom {label}: {rel}")
 
         return actions
 
@@ -296,42 +305,45 @@ class WorkspaceUpdater:
             },
             "skills_detail": [d.to_dict() for d in diffs],
             "actions_taken": [],
+            "planned_actions": [],
         }
 
-        if dry_run:
-            return result
+        action_sink = result["planned_actions"] if dry_run else result["actions_taken"]
 
         local_skills_dir = dot_agents / "skills"
-        local_skills_dir.mkdir(parents=True, exist_ok=True)
+        if not dry_run:
+            local_skills_dir.mkdir(parents=True, exist_ok=True)
         upstream_skills_dir = REPO_ROOT / "skills"
 
         # 1. Synchronize Skills
         for diff in diffs:
             if diff.status in (SkillDiff.STATUS_NEW, SkillDiff.STATUS_UPDATED):
-                src_skill = upstream_skills_dir / diff.name
-                dest_skill = local_skills_dir / diff.name
-                if dest_skill.exists():
-                    shutil.rmtree(dest_skill)
-                shutil.copytree(src_skill, dest_skill)
-                action_str = f"Installed new skill: {diff.name}" if diff.status == SkillDiff.STATUS_NEW else f"Updated skill: {diff.name}"
-                result["actions_taken"].append(action_str)
+                if not dry_run:
+                    src_skill = upstream_skills_dir / diff.name
+                    dest_skill = local_skills_dir / diff.name
+                    if dest_skill.exists():
+                        shutil.rmtree(dest_skill)
+                    shutil.copytree(src_skill, dest_skill)
+                action_str = f"{'Would install' if dry_run else 'Installed'} new skill: {diff.name}" if diff.status == SkillDiff.STATUS_NEW else f"{'Would update' if dry_run else 'Updated'} skill: {diff.name}"
+                action_sink.append(action_str)
 
             elif diff.status == SkillDiff.STATUS_MODIFIED:
                 dest_skill = local_skills_dir / diff.name
                 src_skill = upstream_skills_dir / diff.name
-                # Backup local modified SKILL.md before overwrite
-                backup_file = dest_skill / "SKILL.md.bak"
-                local_md = dest_skill / "SKILL.md"
-                if local_md.exists():
-                    shutil.copy2(local_md, backup_file)
-                if dest_skill.exists():
-                    shutil.rmtree(dest_skill)
-                shutil.copytree(src_skill, dest_skill)
-                # Re-place backup for user inspection
-                if backup_file.exists():
-                    shutil.copy2(backup_file, dest_skill / "SKILL.md.bak")
-                action_str = f"Updated modified skill with backup: {diff.name} (saved SKILL.md.bak)"
-                result["actions_taken"].append(action_str)
+                if not dry_run:
+                    # Backup local modified SKILL.md before overwrite
+                    backup_file = dest_skill / "SKILL.md.bak"
+                    local_md = dest_skill / "SKILL.md"
+                    if local_md.exists():
+                        shutil.copy2(local_md, backup_file)
+                    if dest_skill.exists():
+                        shutil.rmtree(dest_skill)
+                    shutil.copytree(src_skill, dest_skill)
+                    # Re-place backup for user inspection
+                    if backup_file.exists():
+                        shutil.copy2(backup_file, dest_skill / "SKILL.md.bak")
+                action_str = f"{'Would update' if dry_run else 'Updated'} modified skill with backup: {diff.name}{' (saved SKILL.md.bak)' if not dry_run else ''}"
+                action_sink.append(action_str)
 
             elif diff.status == SkillDiff.STATUS_CUSTOM:
                 custom_skill_dir = local_skills_dir / diff.name
@@ -348,15 +360,15 @@ class WorkspaceUpdater:
                 except Exception:
                     pass
 
-                result["actions_taken"].append(f"Preserved custom skill: {diff.name}{audit_suffix}")
+                action_sink.append(f"Preserved custom skill: {diff.name}{audit_suffix}")
 
         # 2. Synchronize non-skill directories & files unless skills_only
         if not skills_only:
             for dir_name in ["rules", "agents", "references", "scripts"]:
                 src_d = REPO_ROOT / dir_name
                 dest_d = dot_agents / dir_name
-                dir_actions = cls.sync_directory_with_guard(src_d, dest_d, label=f".agents/{dir_name}", force=force)
-                result["actions_taken"].extend(dir_actions)
+                dir_actions = cls.sync_directory_with_guard(src_d, dest_d, label=f".agents/{dir_name}", force=force, dry_run=dry_run)
+                action_sink.extend(dir_actions)
 
             # Essential files in .agents/
             for f_name in ESSENTIAL_FILES:
@@ -366,12 +378,14 @@ class WorkspaceUpdater:
                     up_h = cls.compute_file_hash(src_file)
                     loc_h = cls.compute_file_hash(dest_file)
                     if not dest_file.exists():
-                        shutil.copy2(src_file, dest_file)
-                        result["actions_taken"].append(f"Installed .agents/{f_name}")
+                        if not dry_run:
+                            shutil.copy2(src_file, dest_file)
+                        action_sink.append(f"{'Would install' if dry_run else 'Installed'} .agents/{f_name}")
                     elif up_h != loc_h:
-                        shutil.copy2(dest_file, dest_file.with_name(f_name + ".bak"))
-                        shutil.copy2(src_file, dest_file)
-                        result["actions_taken"].append(f"Updated .agents/{f_name} (saved .bak)")
+                        if not dry_run:
+                            shutil.copy2(dest_file, dest_file.with_name(f_name + ".bak"))
+                            shutil.copy2(src_file, dest_file)
+                        action_sink.append(f"{'Would update' if dry_run else 'Updated'} .agents/{f_name}{' (saved .bak)' if not dry_run else ''}")
 
             # Workspace root files (AGENTS.md, mcp_config.json, skills.json)
             for f_name in WORKSPACE_ROOT_FILES:
@@ -382,17 +396,25 @@ class WorkspaceUpdater:
                         content = src_file.read_text(encoding="utf-8")
                         content = content.replace("](references/", "](.agents/references/")
                         content = content.replace("](rules/", "](.agents/rules/")
-                        dest_file.write_text(content, encoding="utf-8")
+                        dest_content = dest_file.read_text(encoding="utf-8") if dest_file.exists() else None
+                        if dest_content != content:
+                            if not dry_run:
+                                dest_file.write_text(content, encoding="utf-8", newline="\n")
+                            action_sink.append(f"{'Would update' if dry_run else 'Updated'} workspace root: {f_name}")
                     else:
-                        shutil.copy2(src_file, dest_file)
-                    result["actions_taken"].append(f"Updated workspace root: {f_name}")
+                        up_h = cls.compute_file_hash(src_file)
+                        loc_h = cls.compute_file_hash(dest_file)
+                        if up_h != loc_h:
+                            if not dry_run:
+                                shutil.copy2(src_file, dest_file)
+                            action_sink.append(f"{'Would update' if dry_run else 'Updated'} workspace root: {f_name}")
 
             # Workspace scripts/ synchronization if folder exists
             ws_scripts = workspace_path / "scripts"
             if ws_scripts.is_dir():
                 src_scripts = REPO_ROOT / "scripts"
-                ws_actions = cls.sync_directory_with_guard(src_scripts, ws_scripts, label="scripts", force=force)
-                result["actions_taken"].extend(ws_actions)
+                ws_actions = cls.sync_directory_with_guard(src_scripts, ws_scripts, label="scripts", force=force, dry_run=dry_run)
+                action_sink.extend(ws_actions)
 
         # 3. Regenerate skills-lock.json with updated SHA-256 hashes
         skills_lock: Dict[str, Any] = {"version": 1, "skills": {}}
@@ -410,8 +432,15 @@ class WorkspaceUpdater:
                         }
 
         lock_target = workspace_path / "skills-lock.json"
-        lock_target.write_text(json.dumps(skills_lock, indent=2), encoding="utf-8")
-        result["actions_taken"].append(f"Regenerated {lock_target.name}")
+        lock_content = json.dumps(skills_lock, indent=2) + "\n"
+        existing_lock = lock_target.read_text(encoding="utf-8") if lock_target.exists() else None
+        needs_lock_update = (existing_lock is None) or (existing_lock.strip() != lock_content.strip())
+        if needs_lock_update:
+            if not dry_run:
+                lock_target.write_text(lock_content, encoding="utf-8", newline="\n")
+                action_sink.append(f"Regenerated {lock_target.name}")
+            else:
+                action_sink.append(f"Would regenerate {lock_target.name}")
 
         return result
 
@@ -490,6 +519,7 @@ def print_update_report(result: Dict[str, Any]):
         print("-----------------------------------------------------------------")
 
     actions = result.get("actions_taken", [])
+    planned = result.get("planned_actions", [])
     if actions:
         print("Actions Executed:")
         for act in actions:
@@ -509,6 +539,9 @@ def print_update_report(result: Dict[str, Any]):
                 print(f"  [!] {name:30} -> {detail}")
             elif st == SkillDiff.STATUS_CUSTOM:
                 print(f"  [#] {name:30} -> {detail}")
+        for act in planned:
+            if not act.startswith("Would install new skill") and not act.startswith("Would update skill") and not act.startswith("Would update modified skill"):
+                print(f"  [*] {act}")
         print("-----------------------------------------------------------------")
 
     print("[OK] Workspace synchronization complete.")
