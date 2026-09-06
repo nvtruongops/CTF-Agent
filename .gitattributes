@@ -1,0 +1,5 @@
+# Auto-detect text files and perform LF normalization on checkin
+* text=auto
+
+# Shell scripts must always use LF line endings for WSL/Linux compatibility
+*.sh text eol=lf

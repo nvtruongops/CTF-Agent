@@ -53,6 +53,15 @@ def install_wsl_toolchain(target_path: Path, profile: str = "core", distro: str 
         return
 
     wsl_target = win_to_wsl_path(target_path)
+    script_local = target_path / ".agents" / "scripts" / "install_ctf_tools.sh"
+    if script_local.exists():
+        try:
+            raw = script_local.read_bytes()
+            if b"\r\n" in raw:
+                script_local.write_bytes(raw.replace(b"\r\n", b"\n"))
+        except Exception:
+            pass
+
     script_wsl = f"{wsl_target}/.agents/scripts/install_ctf_tools.sh"
 
     profiles = [p.strip() for p in profile.split(",") if p.strip()]
@@ -129,6 +138,14 @@ def deploy_to_workspace(
         else:
             shutil.copytree(src_dir, dest_dir)
             print(f"  [+] Copied {dir_name}/ -> {dest_dir}")
+            if dir_name == "scripts":
+                for sh_file in dest_dir.glob("*.sh"):
+                    try:
+                        raw = sh_file.read_bytes()
+                        if b"\r\n" in raw:
+                            sh_file.write_bytes(raw.replace(b"\r\n", b"\n"))
+                    except Exception:
+                        pass
 
     for file_name in ESSENTIAL_FILES:
         src_file = find_asset_file(file_name)
