@@ -14,7 +14,7 @@ Quick reference for binary exploitation (pwn) CTF challenges. Each technique has
 
 ## Prerequisites & Tooling
 
-Pre-installed via [scripts/install_ctf_tools.sh](../scripts/install_ctf_tools.sh):
+Pre-installed via [scripts/install_ctf_tools.sh](../../scripts/install_ctf_tools.sh):
 - **Python packages**: `pwntools`, `ropper`, `ROPgadget` (in `~/.ctf-tools/venv`)
 - **System binaries**: `gdb`, `binutils` (`objdump`, `readelf`), `strace`, `ltrace`, `qemu-system-x86_64`
 - **Ruby gems**: `one_gadget`, `seccomp-tools`

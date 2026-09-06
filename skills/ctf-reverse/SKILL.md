@@ -14,7 +14,7 @@ Quick reference for RE challenges. For detailed techniques, see supporting files
 
 ## Prerequisites & Tooling
 
-Pre-installed via [scripts/install_ctf_tools.sh](../scripts/install_ctf_tools.sh):
+Pre-installed via [scripts/install_ctf_tools.sh](../../scripts/install_ctf_tools.sh):
 - **Python packages**: `frida-tools`, `angr`, `qiling`, `uncompyle6`, `capstone`, `lief`, `z3-solver` (in `~/.ctf-tools/venv`)
 - **System binaries**: `gdb`, `radare2` (`r2`), `binutils` (`objdump`, `readelf`, `nm`), `strace`, `ltrace`, `apktool`, `upx`
 - **Manual tools**: `pwndbg`, `pycdc` (Python 3.9+ bytecode decompiler)

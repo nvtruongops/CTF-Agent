@@ -14,7 +14,7 @@ Use this skill as a routing and execution guide for web-heavy challenges. Keep t
 
 ## Prerequisites & Tooling
 
-Pre-installed via [scripts/install_ctf_tools.sh](../scripts/install_ctf_tools.sh):
+Pre-installed via [scripts/install_ctf_tools.sh](../../scripts/install_ctf_tools.sh):
 - **Python packages**: `sqlmap`, `flask-unsign`, `requests` (in `~/.ctf-tools/venv`)
 - **System tools**: `curl`, `jq`, `hashcat`, `ffuf`
 - **Manual tools**: `ysoserial` (Java deserialization payloads)

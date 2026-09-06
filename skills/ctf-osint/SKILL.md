@@ -14,7 +14,7 @@ Quick reference for OSINT CTF challenges. Each technique has a one-liner here; s
 
 ## Prerequisites & Tooling
 
-Pre-installed via [scripts/install_ctf_tools.sh](../scripts/install_ctf_tools.sh):
+Pre-installed via [scripts/install_ctf_tools.sh](../../scripts/install_ctf_tools.sh):
 - **Python packages**: `shodan`, `Pillow` (in `~/.ctf-tools/venv`)
 - **System binaries**: `whois`, `dnsutils` (`dig`, `nslookup`), `nmap`, `exiftool`, `imagemagick` (`convert`, `identify`), `curl`
 

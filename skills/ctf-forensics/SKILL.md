@@ -14,7 +14,7 @@ Quick reference for forensics CTF challenges. Each technique has a one-liner her
 
 ## Prerequisites & Tooling
 
-Pre-installed via [scripts/install_ctf_tools.sh](../scripts/install_ctf_tools.sh):
+Pre-installed via [scripts/install_ctf_tools.sh](../../scripts/install_ctf_tools.sh):
 - **Python packages**: `volatility3`, `Pillow`, `numpy`, `matplotlib` (in `~/.ctf-tools/venv`)
 - **System binaries**: `binwalk`, `foremost`, `exiftool`, `tshark`, `sleuthkit` (`fls`), `ffmpeg`, `steghide`, `testdisk`, `john`, `pcapfix`
 - **Ruby gems**: `zsteg`

@@ -14,7 +14,7 @@ Quick reference for AI/ML CTF challenges. Each technique has a one-liner here; s
 
 ## Prerequisites & Tooling
 
-Pre-installed via [scripts/install_ctf_tools.sh](../scripts/install_ctf_tools.sh):
+Pre-installed via [scripts/install_ctf_tools.sh](../../scripts/install_ctf_tools.sh):
 - **Python packages**: `numpy`, `Pillow`, `matplotlib`, `scipy` (in `~/.ctf-tools/venv`)
 - **Optional ML packages**: `torch`, `transformers`, `safetensors`, `scikit-learn` (`pip install torch transformers scikit-learn`)
 

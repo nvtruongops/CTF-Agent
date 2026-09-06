@@ -14,7 +14,7 @@ Quick reference for miscellaneous CTF challenges. Each technique has a one-liner
 
 ## Prerequisites & Tooling
 
-Pre-installed via [scripts/install_ctf_tools.sh](../scripts/install_ctf_tools.sh):
+Pre-installed via [scripts/install_ctf_tools.sh](../../scripts/install_ctf_tools.sh):
 - **Python packages**: `z3-solver`, `pwntools`, `Pillow`, `numpy`, `requests`, `dnslib` (in `~/.ctf-tools/venv`)
 - **System binaries**: `ffmpeg`, `qrencode`
 - **Manual tools**: `SageMath`

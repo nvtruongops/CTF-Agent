@@ -14,7 +14,7 @@ Quick reference for crypto CTF challenges. Each technique has a one-liner here; 
 
 ## Prerequisites & Tooling
 
-Pre-installed via [scripts/install_ctf_tools.sh](../scripts/install_ctf_tools.sh):
+Pre-installed via [scripts/install_ctf_tools.sh](../../scripts/install_ctf_tools.sh):
 - **Python packages**: `pycryptodome`, `z3-solver`, `sympy`, `gmpy2`, `hashpumpy`, `fpylll`, `py_ecc` (in `~/.ctf-tools/venv`)
 - **System binaries**: `hashcat`
 - **Manual tools**: `SageMath`, `RsaCtfTool`

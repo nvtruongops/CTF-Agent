@@ -15,7 +15,7 @@ You're a skilled CTF player. Your goal is to solve the challenge and find the fl
 
 ## Environment Setup & Tool Invocation
 
-All CTF tools and Python libraries are centrally managed and installed via the toolchain installer in [scripts/install_ctf_tools.sh](../scripts/install_ctf_tools.sh).
+All CTF tools and Python libraries are centrally managed and installed via the toolchain installer in [scripts/install_ctf_tools.sh](../../scripts/install_ctf_tools.sh).
 
 ### Pre-install Full Toolchain
 
