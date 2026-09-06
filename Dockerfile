@@ -53,6 +53,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     patchelf \
     checksec \
     elfutils \
+    ropper \
+    python3-filebytes \
+    python3-pwntools \
     # Reverse Engineering & WASM
     upx-ucl \
     wabt \
@@ -76,6 +79,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     hashcat \
     john \
     qrencode \
+    python3-fpylll \
     # Web Exploitation
     sqlmap \
     nikto \
@@ -117,7 +121,7 @@ RUN curl -sSfL https://foundry.paradigm.xyz | bash && \
     /root/.foundry/bin/foundryup || true
 
 # 5. Dedicated Python Virtualenv with CTF packages (Matching ctf-tools.lock)
-RUN python3 -m venv /root/.ctf-tools/venv && \
+RUN python3 -m venv --system-site-packages /root/.ctf-tools/venv && \
     /root/.ctf-tools/venv/bin/pip install --no-cache-dir --upgrade pip setuptools wheel && \
     /root/.ctf-tools/venv/bin/pip install --no-cache-dir \
     # Core & Networking
@@ -127,8 +131,6 @@ RUN python3 -m venv /root/.ctf-tools/venv && \
     dnspython==2.8.0 \
     dnslib==0.9.26 \
     # Pwn & Binary
-    pwntools==4.15.0 \
-    ropper==1.13.13 \
     ROPgadget==7.7 \
     capstone==5.0.3 \
     unicorn==2.1.2 \
@@ -136,14 +138,12 @@ RUN python3 -m venv /root/.ctf-tools/venv && \
     # Reverse Engineering
     angr==9.3.4 \
     lief==0.17.6 \
-    uncompyle6==3.9.3 \
     frida-tools==14.10.4 \
     # Cryptography
     pycryptodome==3.23.0 \
     z3-solver==4.13.0.0 \
     sympy==1.14.0 \
     gmpy2==2.3.0 \
-    fpylll==0.6.4 \
     py_ecc==8.0.0 \
     hashpumpy==1.2 \
     # Forensics
