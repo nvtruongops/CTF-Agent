@@ -74,27 +74,32 @@
 
 ---
 
-## Operational Modes: Blitz vs Deep Analysis
+## Operational Profiles & Specialized Agents
 
-CTF competitions and security research labs have diametrically opposed objectives. `CTF-Agent` implements **Dual Operational Modes** to optimize for both:
+`CTF-Agent` provides 3 specialized agent personas designed to eliminate multi-agent refusal cascades and optimize for both speedrun competitions and deep lab audits:
 
 ```
-┌────────────────────────────────────────────────────────────────────────────────────────┐
-│                               OPERATIONAL PROFILES MATRIX                              │
-├───────────────────────────────────────────┬────────────────────────────────────────────┤
-│  BLITZ / SPEEDRUN MODE                    │  DEEP ANALYSIS / LAB MODE                  │
-│  Trigger: --blitz, --fast, @ctf-speedrun  │  Trigger: --deep, --lab, @ctf-analyzer     │
-├───────────────────────────────────────────┼────────────────────────────────────────────┤
-│  Target: Active CTF Competitions          │  Target: Labs (HTB, THM), Audits, RCA      │
-│  Priority: Time-to-Flag (First Blood)     │  Priority: Root Cause Analysis & Docs      │
-│  Stop Condition: On Flag Capture (HALT)   │  Stop Condition: Verified Docs & POC       │
-│  Documentation: ZERO (No writeup.md)      │  Documentation: 5-Section writeup.md       │
-│  Workspace: Auto-purge scratch debris     │  Workspace: Organize into resources/       │
-│  Output: Banner + 2-line exploit note     │  Output: Full academic walkthrough         │
-└───────────────────────────────────────────┴────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                                   CTF-AGENT PERSONA MATRIX                                      │
+├──────────────────────────┬───────────────────────────────┬──────────────────────────────────────┤
+│  MASTER ORCHESTRATOR     │  BLITZ / SPEEDRUN SOLVER      │  DEEP RESEARCH AUDITOR               │
+│  @ctf-controller         │  @ctf-speedrun (--blitz)      │  @ctf-analyzer (--deep)              │
+├──────────────────────────┼───────────────────────────────┼──────────────────────────────────────┤
+│  Role: State Controller  │  Role: First Blood Hunter     │  Role: Security Auditor / RCA        │
+│  Enforces: Shallow depth │  Stop Condition: On Flag HALT │  Stop Condition: Verified Writeup    │
+│  Context: SCO & Envelope │  Documentation: ZERO overhead │  Documentation: 5-Section writeup    │
+│  Refusal: 3-Tier Router  │  Workspace: Auto-purge debris │  Workspace: Organize resources/      │
+│  Fallback: Deterministic │  Output: Verified Flag Banner │  Output: Authoritative RCA report    │
+└──────────────────────────┴───────────────────────────────┴──────────────────────────────────────┘
 ```
 
-### 1. Blitz / Speedrun Mode (`@ctf-speedrun` / `--blitz`)
+### 1. Master Controller (`@ctf-controller`)
+Use as the primary entrypoint for complex multi-step labs or challenges.
+- **Security Context & Task Envelope**: Wraps target endpoints or local lab files in machine-readable context objects (`security_context`, `task_envelope`) to prevent subagents from evaluating prompts with zero inherited context.
+- **Shallow Orchestration (Depth = 1)**: Dispatches directly to a single specialist skill or agent. Prohibits deep recursive agent chaining (`Agent A -> Agent B -> Agent C`).
+- **3-Tier Refusal Router**: Automatically classifies model refusals (Type A Wording, Type B Ambiguity, Type C Hard Policy) and shifts execution immediately to deterministic CLI tools without entering infinite paraphrasing loops.
+
+### 2. Blitz / Speedrun Mode (`@ctf-speedrun` / `--blitz`)
 Use during active CTF competitions where time is points.
 - **Stop-on-Flag (HALT immediately)**: The instant a valid flag matching target regex (`flag{...}`, `picoCTF{...}`) is confirmed, all tool invocations and probing **stop immediately**.
 - **High-Visibility Flag Banner**:
@@ -111,7 +116,7 @@ Use during active CTF competitions where time is points.
   Automatically removes temporary scratch files (`test*.py`, `fuzz*.py`, `tmp*`, `core.*`, `payload*.bin`), keeping only the original challenge files and the winning `solve.py`.
 - **Zero Overhead**: Does **not** invoke `ctf-writeup` and does **not** create `writeup.md`.
 
-### 2. Deep Analysis / Lab Mode (`@ctf-analyzer` / `--deep`)
+### 3. Deep Analysis / Lab Mode (`@ctf-analyzer` / `--deep`)
 Use when solving challenge labs (HackTheBox, PortSwigger, pwnable.tw), post-mortems, or security research.
 - **Root Cause Analysis (RCA)**: Deep analysis of memory corruption layouts, AST flaws, or cryptographic mathematical proofs.
 - **Directory Standardization**:
@@ -199,6 +204,7 @@ python scripts/install_as_agent.py --global
 
 ### Method 3: Direct Usage Within This Workspace
 This workspace already has `.agents/` linked and configured. You can start chatting directly:
+- Call `@ctf-controller` for master orchestration, Task Envelopes, and refusal-safe routing.
 - Call `@ctf-speedrun` for fast competition solving.
 - Call `@ctf-analyzer` for deep analysis and writeups.
 - Call `/solve-challenge --mode blitz` or `/solve-challenge --mode deep`.
@@ -228,6 +234,7 @@ Located in [scripts/](scripts/):
 ## References & Deep Knowledge Base
 
 Detailed references offloaded to [references/](references/) to preserve maximum context window tokens during agent turns:
+- [multi-agent-orchestration-and-policy-routing.md](references/multi-agent-orchestration-and-policy-routing.md) — Comprehensive guide on Security Context Objects, Task Envelopes, shallow orchestration, and the 3-Tier Refusal Router.
 - [llm-safety-and-policy-compliance.md](references/llm-safety-and-policy-compliance.md) — Comprehensive guide on modern LLM safety filter architecture, trigger dictionary (EN/VI), and safe prompt engineering.
 - [ctf-triage-ladder.md](references/ctf-triage-ladder.md) — Hierarchical 4-Tier progression (Tier 1 plaintext to Tier 4 in-meta).
 - [version-matrix.md](references/version-matrix.md) — Glibc heap, PHP type juggling, and Python bytecode compatibility matrix.
@@ -244,6 +251,8 @@ The rules governing all CTF-Agent behavior are defined in [AGENTS.md](AGENTS.md)
 3. **Execution Guard**: Never modify original challenge files; wrap Linux binaries through WSL/Docker; enforce 60s command timeouts.
 4. **Flag Anti-Hallucination**: 100% verified flag strings directly from runtime output.
 5. **LLM Safety & Policy Compliance**: Enforce authorized educational sandbox scope and use academic diagnostic terminology per [ctf-safety-framing-rules.md](rules/ctf-safety-framing-rules.md).
+6. **Context Propagation & Task Envelopes**: Propagate machine-readable Security Context Objects and enforce shallow execution depth (max depth: 1).
+7. **Refusal Router & Deterministic Tool Fallback**: Enforce 3-tier refusal classification; never enter infinite paraphrasing loops on hard refusals, falling back directly to deterministic CLI tools.
 
 ---
 

@@ -74,8 +74,9 @@ def deploy_to_workspace(target_path: Path, use_symlink: bool = False, force: boo
 
     print(f"\n[OK] Successfully deployed CTF-Agent into {dot_agents}!")
     print(f"    Available Subagents:")
-    print(f"      - @ctf-speedrun : Ultra-fast Blitz mode (Stop-on-Flag, zero doc overhead, auto-clean)")
-    print(f"      - @ctf-analyzer : In-depth Lab/Audit mode (Full RCA, resources/ preservation, writeup.md)")
+    print(f"      - @ctf-controller : Master Orchestrator (SCO/TE context, refusal routing, deterministic fallback)")
+    print(f"      - @ctf-speedrun   : Ultra-fast Blitz mode (Stop-on-Flag, zero doc overhead, auto-clean)")
+    print(f"      - @ctf-analyzer   : In-depth Lab/Audit mode (Full RCA, resources/ preservation, writeup.md)")
 
 def deploy_globally(force: bool = False):
     """Deploy skills, rules, and subagents into ~/.gemini/config/ for global availability."""
