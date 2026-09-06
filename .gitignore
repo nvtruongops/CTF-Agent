@@ -39,6 +39,16 @@ core.*
 *.log
 resources/scratch/
 
+# Scripts internal artifacts, developer CI & runtime scratch
+scripts/__pycache__/
+scripts/*.py[cod]
+scripts/*.log
+scripts/install-*.log
+scripts/*.tmp
+scripts/*.dmp
+scripts/scratch/
+scripts/local_ci.py
+
 # Local credentials & sensitive tokens
 .env
 .env.local

@@ -143,7 +143,7 @@ class LocalCIRunner:
         gitignore = self.repo_root / ".gitignore"
         if gitignore.is_file():
             gi_text = gitignore.read_text(encoding="utf-8")
-            for req in ["tests", "__pycache__", ".venv"]:
+            for req in ["tests", "__pycache__", ".venv", "scripts/local_ci.py"]:
                 if req not in gi_text:
                     passed = False
                     details.append(f".gitignore missing expected rule: {req}")
@@ -152,6 +152,18 @@ class LocalCIRunner:
                 details.append(".gitignore missing rule for byte-compiled files (*.pyc or *.py[cod])")
             if passed:
                 details.append("Validated .gitignore isolation rules.")
+
+        scripts_gi = self.repo_root / "scripts" / ".gitignore"
+        if not scripts_gi.is_file():
+            passed = False
+            details.append("Missing scripts/.gitignore for internal scripts isolation.")
+        else:
+            sgi_text = scripts_gi.read_text(encoding="utf-8")
+            if "local_ci.py" not in sgi_text or "assets/" not in sgi_text:
+                passed = False
+                details.append("scripts/.gitignore missing local_ci.py or assets/ exclusion.")
+            else:
+                details.append("Validated scripts/.gitignore isolation rules.")
 
         return CIPassResult(
             phase="Phase 2: Git Hygiene & Line-Ending Audit",

@@ -31,6 +31,15 @@ core.*
 *.log
 resources/scratch/
 
+# Non-primary scripts & developer CI tools
+scripts/local_ci.py
+scripts/assets/
+scripts/*.log
+scripts/install-*.log
+scripts/*.tmp
+scripts/*.dmp
+scripts/scratch/
+
 # Local credentials & sensitive tokens
 .env
 .env.*

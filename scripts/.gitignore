@@ -1,0 +1,16 @@
+# Byte-compiled / cache files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Internal developer CI & packaging mirrors
+local_ci.py
+assets/
+
+# Execution logs & runtime scratch
+*.log
+install-*.log
+*.tmp
+*.dmp
+core.*
+scratch/

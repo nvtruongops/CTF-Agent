@@ -136,9 +136,23 @@ def deploy_to_workspace(
                 shutil.copytree(src_dir, dest_dir)
                 print(f"  [+] Copied {dir_name}/ -> {dest_dir}")
         else:
-            shutil.copytree(src_dir, dest_dir)
-            print(f"  [+] Copied {dir_name}/ -> {dest_dir}")
             if dir_name == "scripts":
+                shutil.copytree(
+                    src_dir,
+                    dest_dir,
+                    ignore=shutil.ignore_patterns(
+                        "local_ci.py",
+                        "assets",
+                        "__pycache__",
+                        "*.pyc",
+                        "*.pyo",
+                        "*.log",
+                        "*.tmp",
+                        "*.dmp",
+                        ".gitignore",
+                    ),
+                )
+                print(f"  [+] Copied {dir_name}/ -> {dest_dir} (excluding non-primary user files)")
                 for sh_file in dest_dir.glob("*.sh"):
                     try:
                         raw = sh_file.read_bytes()
@@ -146,6 +160,9 @@ def deploy_to_workspace(
                             sh_file.write_bytes(raw.replace(b"\r\n", b"\n"))
                     except Exception:
                         pass
+            else:
+                shutil.copytree(src_dir, dest_dir)
+                print(f"  [+] Copied {dir_name}/ -> {dest_dir}")
 
     for file_name in ESSENTIAL_FILES:
         src_file = find_asset_file(file_name)
@@ -173,10 +190,11 @@ def deploy_to_workspace(
         ws_scripts = target_path / "scripts"
         if ws_scripts.is_dir():
             src_scripts = REPO_ROOT / "scripts"
+            ignored_sync_names = {"local_ci.py", "assets", "__pycache__", ".gitignore"}
             for s_file in src_scripts.iterdir():
-                if s_file.is_file():
+                if s_file.is_file() and s_file.name not in ignored_sync_names and not s_file.name.endswith((".log", ".tmp", ".pyc", ".pyo", ".dmp")):
                     shutil.copy2(s_file, ws_scripts / s_file.name)
-            print(f"  [+] Synchronized all scripts -> {ws_scripts}")
+            print(f"  [+] Synchronized primary CTF scripts -> {ws_scripts}")
 
         # Generate skills-lock.json with computed hashes of local skills
         skills_lock = {"version": 1, "skills": {}}

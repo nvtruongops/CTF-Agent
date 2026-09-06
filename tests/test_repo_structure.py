@@ -75,3 +75,35 @@ def test_gitignore_ignores_tests_directory(repo_root: Path):
     assert gitignore.is_file()
     content = gitignore.read_text(encoding="utf-8")
     assert "tests/" in content, ".gitignore must contain 'tests/'"
+
+
+def test_scripts_ignore_and_exclusion_rules(repo_root: Path):
+    """Verifies that non-primary scripts and internal developer tools are ignored across git, npm, and workspace deployment."""
+    # 1. Root .gitignore
+    gitignore = repo_root / ".gitignore"
+    assert gitignore.is_file()
+    gi_content = gitignore.read_text(encoding="utf-8")
+    assert "scripts/local_ci.py" in gi_content, ".gitignore must ignore scripts/local_ci.py"
+    assert "scripts/__pycache__/" in gi_content or "__pycache__/" in gi_content
+    assert "scripts/*.log" in gi_content or "*.log" in gi_content
+
+    # 2. .npmignore
+    npmignore = repo_root / ".npmignore"
+    assert npmignore.is_file()
+    ni_content = npmignore.read_text(encoding="utf-8")
+    assert "scripts/local_ci.py" in ni_content, ".npmignore must ignore scripts/local_ci.py"
+    assert "scripts/assets/" in ni_content, ".npmignore must ignore scripts/assets/"
+
+    # 3. scripts/.gitignore
+    scripts_gi = repo_root / "scripts" / ".gitignore"
+    assert scripts_gi.is_file(), "scripts/.gitignore must exist"
+    sgi_content = scripts_gi.read_text(encoding="utf-8")
+    assert "local_ci.py" in sgi_content, "scripts/.gitignore must ignore local_ci.py"
+    assert "assets/" in sgi_content, "scripts/.gitignore must ignore assets/"
+
+    # 4. install_as_agent.py deployment exclusions
+    installer = repo_root / "scripts" / "install_as_agent.py"
+    assert installer.is_file()
+    inst_content = installer.read_text(encoding="utf-8")
+    assert "local_ci.py" in inst_content, "install_as_agent.py must exclude local_ci.py from deployment"
+    assert "assets" in inst_content, "install_as_agent.py must exclude assets from scripts/ deployment"
