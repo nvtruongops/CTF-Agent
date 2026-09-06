@@ -37,6 +37,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     python3-cryptography \
     python3-wheel \
     python3-setuptools \
+    python3-requests \
+    python3-dnspython \
+    python3-sympy \
+    python3-gmpy2 \
+    python3-pil \
+    python3-impacket \
+    python3-numpy \
+    python3-matplotlib \
     # Libraries
     libgmp-dev \
     libmpfr-dev \
@@ -134,11 +142,9 @@ RUN curl -sSfL https://foundry.paradigm.xyz | bash && \
 # 5. Dedicated Python Virtualenv with CTF packages (Matching ctf-tools.lock)
 RUN python3 -m venv --system-site-packages /root/.ctf-tools/venv && \
     /root/.ctf-tools/venv/bin/pip install --no-cache-dir --upgrade pip setuptools wheel && \
-    /root/.ctf-tools/venv/bin/pip install --no-cache-dir --no-build-isolation \
+    /root/.ctf-tools/venv/bin/pip install --no-cache-dir \
     # Core & Networking
-    requests==2.32.5 \
     shodan==1.31.0 \
-    dnspython==2.8.0 \
     dnslib==0.9.26 \
     # Pwn & Binary
     ROPgadget==7.7 \
@@ -148,14 +154,11 @@ RUN python3 -m venv --system-site-packages /root/.ctf-tools/venv && \
     lief==0.17.6 \
     frida-tools==14.10.4 \
     # Cryptography
-    sympy==1.14.0 \
-    gmpy2==2.3.0 \
     py_ecc==8.0.0 \
     hashpumpy==1.2 \
     # Forensics
     volatility3==2.27.0 \
     oletools==0.60.2 \
-    Pillow==11.3.0 \
     dissect.cobaltstrike==1.2.1 \
     # Modern Web
     pyjwt==2.10.1 \
@@ -166,7 +169,6 @@ RUN python3 -m venv --system-site-packages /root/.ctf-tools/venv && \
     # Mobile
     objection==1.11.0 \
     # Active Directory & Windows
-    impacket==0.12.0 \
     certipy-ad==4.8.2 \
     bloodhound==1.7.2 \
     # Hardware
@@ -175,9 +177,7 @@ RUN python3 -m venv --system-site-packages /root/.ctf-tools/venv && \
     slither-analyzer==0.10.4 \
     solc-select==1.2.0 \
     # AI & ML Security
-    safetensors==0.5.3 \
-    numpy==2.2.6 \
-    matplotlib==3.10.8 && \
+    safetensors==0.5.3 && \
     /root/.ctf-tools/venv/bin/pip install --no-cache-dir --index-url https://download.pytorch.org/whl/cpu torch==2.6.0 && \
     /root/.ctf-tools/venv/bin/pip install --no-cache-dir transformers==4.49.0
 
