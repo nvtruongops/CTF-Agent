@@ -37,8 +37,16 @@ ctf-agent = "ctf_agent_cli:main"
 
 [tool.setuptools]
 py-modules = ["ctf_agent_cli"]
-packages = ["scripts"]
+packages = [
+    "scripts",
+    "skills",
+    "rules",
+    "agents",
+    "references"
+]
 
 [tool.setuptools.package-data]
 "*" = ["*"]
-"scripts" = ["*"]
+
+
+

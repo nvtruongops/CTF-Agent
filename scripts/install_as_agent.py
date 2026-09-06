@@ -25,6 +25,16 @@ if hasattr(sys.stdout, "reconfigure"):
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
+def find_asset_file(filename: str) -> Optional[Path]:
+    """Resolves asset file from REPO_ROOT (source) or scripts/assets/ (pip/uv wheel)."""
+    p = REPO_ROOT / filename
+    if p.exists():
+        return p
+    p_assets = Path(__file__).resolve().parent / "assets" / filename
+    if p_assets.exists():
+        return p_assets
+    return None
+
 ESSENTIAL_DIRS = ["skills", "rules", "agents", "scripts", "references"]
 ESSENTIAL_FILES = ["AGENTS.md", "mcp_config.json", "skills.json", "README.md"]
 WORKSPACE_ROOT_FILES = ["AGENTS.md", "mcp_config.json", "skills.json"]
@@ -121,18 +131,18 @@ def deploy_to_workspace(
             print(f"  [+] Copied {dir_name}/ -> {dest_dir}")
 
     for file_name in ESSENTIAL_FILES:
-        src_file = REPO_ROOT / file_name
+        src_file = find_asset_file(file_name)
         dest_file = dot_agents / file_name
-        if src_file.exists():
+        if src_file and src_file.exists():
             shutil.copy2(src_file, dest_file)
             print(f"  [+] Copied {file_name} -> {dest_file}")
 
     if setup_workspace:
         print(f"\n[*] Configuring workspace root settings at {target_path}...")
         for file_name in WORKSPACE_ROOT_FILES:
-            src_file = REPO_ROOT / file_name
+            src_file = find_asset_file(file_name)
             dest_file = target_path / file_name
-            if src_file.exists():
+            if src_file and src_file.exists():
                 if file_name == "AGENTS.md" and target_path != REPO_ROOT:
                     content = src_file.read_text(encoding="utf-8")
                     content = content.replace("](references/", "](.agents/references/")

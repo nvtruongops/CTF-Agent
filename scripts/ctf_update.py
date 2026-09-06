@@ -24,6 +24,16 @@ if hasattr(sys.stdout, "reconfigure"):
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
+def find_asset_file(filename: str) -> Optional[Path]:
+    """Resolves asset file from REPO_ROOT (source) or scripts/assets/ (pip/uv wheel)."""
+    p = REPO_ROOT / filename
+    if p.exists():
+        return p
+    p_assets = Path(__file__).resolve().parent / "assets" / filename
+    if p_assets.exists():
+        return p_assets
+    return None
+
 ESSENTIAL_DIRS = ["skills", "rules", "agents", "scripts", "references"]
 ESSENTIAL_FILES = ["AGENTS.md", "mcp_config.json", "skills.json", "README.md"]
 WORKSPACE_ROOT_FILES = ["AGENTS.md", "mcp_config.json", "skills.json"]
@@ -370,9 +380,9 @@ class WorkspaceUpdater:
 
             # Essential files in .agents/
             for f_name in ESSENTIAL_FILES:
-                src_file = REPO_ROOT / f_name
+                src_file = find_asset_file(f_name)
                 dest_file = dot_agents / f_name
-                if src_file.exists():
+                if src_file and src_file.exists():
                     up_h = cls.compute_file_hash(src_file)
                     loc_h = cls.compute_file_hash(dest_file)
                     if not dest_file.exists():
@@ -387,9 +397,9 @@ class WorkspaceUpdater:
 
             # Workspace root files (AGENTS.md, mcp_config.json, skills.json)
             for f_name in WORKSPACE_ROOT_FILES:
-                src_file = REPO_ROOT / f_name
+                src_file = find_asset_file(f_name)
                 dest_file = workspace_path / f_name
-                if src_file.exists():
+                if src_file and src_file.exists():
                     if f_name == "AGENTS.md" and workspace_path != REPO_ROOT:
                         content = src_file.read_text(encoding="utf-8")
                         content = content.replace("](references/", "](.agents/references/")

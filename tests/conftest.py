@@ -4,7 +4,7 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
-EXCLUDED_DIRS = {".git", "tests", ".pytest_cache", "__pycache__", "venv", ".venv", "env", ".gemini", ".codegraph", "node_modules"}
+EXCLUDED_DIRS = {".git", "tests", ".pytest_cache", "__pycache__", "venv", ".venv", "env", ".gemini", ".codegraph", "node_modules", "build", "dist", ".agents", "assets"}
 
 @pytest.fixture(scope="session")
 def repo_root() -> Path:
