@@ -1,0 +1,44 @@
+{
+  "name": "ctf-agent",
+  "version": "1.0.0",
+  "description": "Autonomous Security Intelligence & Competitive Exploitation Framework",
+  "main": "bin/ctf-agent.js",
+  "bin": {
+    "ctf-agent": "./bin/ctf-agent.js"
+  },
+  "scripts": {
+    "init": "node bin/ctf-agent.js init",
+    "test": "python tests/run_all_tests.py"
+  },
+  "keywords": [
+    "ctf",
+    "security",
+    "agent",
+    "antigravity",
+    "pwn",
+    "web",
+    "reverse-engineering",
+    "cryptography",
+    "forensics"
+  ],
+  "author": "nvtruongops",
+  "license": "MIT",
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "files": [
+    "bin/",
+    "scripts/",
+    "agents/",
+    "skills/",
+    "rules/",
+    "references/",
+    "AGENTS.md",
+    "mcp_config.json",
+    "skills.json",
+    "skills-lock.json",
+    "README.md",
+    "docker-compose.yml",
+    "Dockerfile"
+  ]
+}

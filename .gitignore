@@ -44,3 +44,10 @@ resources/scratch/
 .env.local
 *.pem
 *.key
+
+# Build & Distribution Artifacts
+build/
+dist/
+*.egg-info/
+node_modules/
+

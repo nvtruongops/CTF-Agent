@@ -203,6 +203,108 @@ For comprehensive guidelines and full replacement dictionaries, see [ctf-safety-
 
 ## Quick Start & Workspace Installation
 
+### Method 0: Intelligent Workspace Initialization (Triple-Engine Architecture)
+
+```
+                            ┌─────────────────────────────────────────┐
+                            │    User Workspace Initialization        │
+                            └────────────────────┬────────────────────┘
+                                                 │
+                ┌────────────────────────────────┼────────────────────────────────┐
+                ▼                                ▼                                ▼
+      [1. Web & JS Ecosystem]        [2. Python Workstation]           [3. Modern UV Toolchain]
+        npx ctf-agent init          python scripts/ctf_init.py           uvx ctf-agent init
+                │                                │                                │
+                └────────────────────────────────┼────────────────────────────────┘
+                                                 ▼
+                            ┌─────────────────────────────────────────┐
+                            │      Step 1: Preflight Detection        │
+                            │   - OS, CPU, RAM & Disk Storage Free    │
+                            │   - WSL2 & Kali Linux Distro Status     │
+                            │   - Docker CLI & Daemon Connectivity    │
+                            │   - Check for Existing .agents/ Folder  │
+                            └────────────────────┬────────────────────┘
+                                                 │
+                                                 ▼
+                            ┌─────────────────────────────────────────┐
+                            │    Step 2: Backend Capability Score     │
+                            │   WSL Kali Score vs Docker Daemon Score │
+                            │   (Objective transparent recommendation)│
+                            └────────────────────┬────────────────────┘
+                                                 │
+                                                 ▼
+                            ┌─────────────────────────────────────────┐
+                            │   Step 3: Workload Purpose Selection    │
+                            │   [1] Live CTF: core, pwn, web, crypto  │
+                            │   [2] Security Lab: 10 deep profiles    │
+                            │   [3] Rev & Binary: pwn, rev, kernel    │
+                            │   [4] Full Workstation: all 15 profiles │
+                            └────────────────────┬────────────────────┘
+                                                 │
+                                                 ▼
+                            ┌─────────────────────────────────────────┐
+                            │   Step 4: Provision & Conflict Guard    │
+                            │   - If .agents exists: Prompt / Confirm │
+                            │   - Deploy .agents/ & AGENTS.md config  │
+                            │   - Preserve solve.py & resources/      │
+                            │   - Provision Toolchain into Backend    │
+                            └────────────────────┬────────────────────┘
+                                                 │
+                                                 ▼
+                            ┌─────────────────────────────────────────┐
+                            │      Step 5: Health Verification        │
+                            │   Verify subagents, venv & CLI tools    │
+                            │   [OK] WORKSPACE READY TO SOLVE!        │
+                            └─────────────────────────────────────────┘
+```
+
+CTF-Agent provides three interchangeable execution engines tailored to different developer workflows:
+
+#### 1. Web & JavaScript Ecosystem (`npx ctf-agent init`)
+Zero-clone setup for developers accustomed to npm and modern web toolchains:
+```bash
+# Initialize current workspace via NPX:
+npx ctf-agent init
+
+# Target a specific challenge workspace:
+npx ctf-agent init /path/to/ctf-workspace
+
+# Run preflight inspection in dry-run mode:
+npx ctf-agent init --dry-run
+```
+
+#### 2. Native Python Security Workstation (`python scripts/ctf_init.py`)
+Pure standard library execution with zero external third-party dependencies:
+```bash
+# Interactive setup wizard:
+python scripts/ctf_init.py /path/to/ctf-workspace
+
+# Or via install_as_agent wrapper:
+python scripts/install_as_agent.py init /path/to/ctf-workspace
+
+# Automated unattended setup (auto-selects highest-scored backend and purpose):
+python scripts/ctf_init.py /path/to/ctf-workspace --auto --purpose live-ctf
+
+# Preflight analysis and dry-run inspection (zero filesystem writes):
+python scripts/ctf_init.py --dry-run
+
+# Health check verification on an existing workspace:
+python scripts/ctf_init.py /path/to/ctf-workspace --check-only
+```
+
+#### 3. Modern Python Toolchain (`uvx ctf-agent init`)
+Ultra-fast ephemeral execution powered by the Rust-based `uv` package manager:
+```bash
+# Initialize workspace via UVX directly:
+uvx ctf-agent init
+
+# Execute directly from repository source:
+uvx --from git+https://github.com/nvtruongops/CTF-Agent ctf-agent init
+
+# Automated speedrun profile:
+uvx ctf-agent init --auto --purpose live-ctf
+```
+
 ### Method 1: Deploy CTF-Agent into a CTF Challenge Project (`.agents/`)
 Deploy CTF-Agent as an `.agents` bundle into any target CTF directory:
 ```bash

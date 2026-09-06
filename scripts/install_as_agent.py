@@ -222,6 +222,12 @@ def deploy_globally(force: bool = False):
     print(f"\n[OK] Successfully installed CTF-Agent globally across all Antigravity workspaces!")
 
 def main():
+    if len(sys.argv) > 1 and sys.argv[1] in ("init", "--init"):
+        import ctf_init
+        sys.argv = [sys.argv[0]] + sys.argv[2:]
+        ctf_init.main()
+        return
+
     parser = argparse.ArgumentParser(description="CTF-Agent Workspace & Global Deployment Manager")
     parser.add_argument("target", nargs="?", help="Target CTF workspace directory (deploys as .agents/)")
     parser.add_argument("--global", dest="is_global", action="store_true", help="Install CTF skills, rules, and subagents globally into ~/.gemini/config/")
@@ -229,9 +235,10 @@ def main():
     parser.add_argument("--setup-workspace", dest="setup_workspace", action="store_true", default=True, help="Configure workspace root AGENTS.md, mcp_config.json, skills.json (default: True)")
     parser.add_argument("--no-setup-workspace", dest="setup_workspace", action="store_false", help="Only deploy .agents/ without modifying workspace root files")
     parser.add_argument("--wsl", dest="install_wsl", action="store_true", default=True, help="Automatically install CTF toolchain into WSL during setup (default: True)")
-    parser.add_argument("--no-wsl", dest="install_wsl", action="store_false", help="Skip WSL toolchain installation")
+    parser.add_argument("--no-wsl", "--skip-toolchain", dest="install_wsl", action="store_false", help="Skip toolchain installation into backend")
     parser.add_argument("--wsl-profile", default="core", help="WSL toolchain profile to install: core, pwn, rev, crypto, forensics, web, all (default: core)")
     parser.add_argument("--wsl-distro", default="kali-linux", help="WSL distribution target (default: kali-linux)")
+    parser.add_argument("--init", dest="is_init", action="store_true", help="Run intelligent preflight detector & workspace initializer")
     parser.add_argument("--force", "-f", action="store_true", help="Overwrite existing files or directories")
 
     args = parser.parse_args()

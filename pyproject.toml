@@ -1,0 +1,44 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ctf-agent"
+version = "1.0.0"
+description = "Autonomous Security Intelligence & Competitive Exploitation Framework"
+readme = "README.md"
+requires-python = ">=3.9"
+license = {text = "MIT"}
+authors = [
+    {name = "nvtruongops"}
+]
+keywords = [
+    "ctf",
+    "security",
+    "agent",
+    "antigravity",
+    "pwn",
+    "web",
+    "reverse-engineering",
+    "cryptography",
+    "forensics"
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+    "Topic :: Security",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Information Technology",
+]
+dependencies = []
+
+[project.scripts]
+ctf-agent = "ctf_agent_cli:main"
+
+[tool.setuptools]
+py-modules = ["ctf_agent_cli"]
+packages = ["scripts"]
+
+[tool.setuptools.package-data]
+"*" = ["*"]
+"scripts" = ["*"]
