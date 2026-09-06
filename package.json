@@ -8,7 +8,8 @@
   },
   "scripts": {
     "init": "node bin/ctf-agent.js init",
-    "test": "python tests/run_all_tests.py"
+    "test": "python scripts/local_ci.py",
+    "ci": "python scripts/local_ci.py"
   },
   "keywords": [
     "ctf",

@@ -68,6 +68,10 @@ def main():
         sys.argv = [sys.argv[0]] + args[1:]
         cve_util = _load_entrypoint("cve_lookup", "cve_lookup.py")
         cve_util()
+    elif args and args[0] in ("ci", "test", "check"):
+        sys.argv = [sys.argv[0]] + args[1:]
+        ci_runner = _load_entrypoint("local_ci", "local_ci.py")
+        ci_runner()
     elif args and args[0] == "init":
         sys.argv = [sys.argv[0]] + args[1:]
         initializer = _load_entrypoint("ctf_init", "ctf_init.py")

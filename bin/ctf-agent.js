@@ -87,6 +87,9 @@ function main() {
   } else if (args.length > 0 && (args[0] === 'cve' || args[0] === 'cve-lookup')) {
     scriptFile = 'cve_lookup.py';
     forwardArgs = args.slice(1);
+  } else if (args.length > 0 && (args[0] === 'ci' || args[0] === 'test' || args[0] === 'check')) {
+    scriptFile = 'local_ci.py';
+    forwardArgs = args.slice(1);
   } else if (args.length > 0 && args[0] === 'init') {
     scriptFile = 'ctf_init.py';
     forwardArgs = args.slice(1);
