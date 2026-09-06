@@ -20,6 +20,8 @@
 - [Specialized Category Skills](#specialized-category-skills)
 - [Parallel Triage & High-Speed Reconnaissance](#parallel-triage--high-speed-reconnaissance-p0-engine)
 - [Quick Start & Workspace Installation](#quick-start--workspace-installation)
+- [Flexible Deployment Modes (Brain vs Clean vs Scaffolding)](#flexible-deployment-modes-agent-brain-vs-clean-vs-scaffolding)
+- [Workspace & Skill Updates (ctf-agent update)](#workspace--skill-updates-ctf-agent-update)
 - [References & Deep Knowledge Base](#references--deep-knowledge-base)
 - [Constitution & Architectural Governance](#constitution--architectural-governance)
 
@@ -415,6 +417,71 @@ uvx --from git+https://github.com/nvtruongops/CTF-Agent ctf-agent init --auto --
 
 ---
 
+## Flexible Deployment Modes (Agent Brain vs Clean vs Scaffolding)
+
+When initializing or updating existing projects, security labs (like `flagyard-labs`), or audit targets, you frequently need the **AI Agent Brain** (`.agents/` + root `AGENTS.md` constitution + MCP configs), but **zero** boilerplate challenge scaffolding clutter (`resources/`, `notes/`, `solve.py`, `.env.example`). CTF-Agent provides orthogonal, machine-guarded deployment flags:
+
+```
+                                  ┌─────────────────────────────────────────┐
+                                  │      Choose Target Deployment Mode      │
+                                  └────────────────────┬────────────────────┘
+                                                       │
+         ┌─────────────────────────────────────────────┼─────────────────────────────────────────────┐
+         ▼                                             ▼                                             ▼
+   [--brain / --agent-brain]                    [--agent-only]                           [--scaffold / default]
+   Full Agent Brain                             Zero-Footprint Mode                      Full Challenge Mode
+   - .agents/ internal brain                    - .agents/ internal only                 - .agents/ internal brain
+   - Root AGENTS.md constitution                - ZERO files created at root             - Root AGENTS.md + MCP configs
+   - Root mcp_config.json                       - Root remains 100% clean                - Scaffolding templates:
+   - Root skills-lock.json                      - Ideal for stealth repo injection         resources/, notes/,
+   - Scaffolding: ZERO templates                                                           solve.py, .env.example
+```
+
+### Mode Comparison Matrix
+
+| Flag / Mode | Description | `.agents/` Dir | Root Files (`AGENTS.md`, MCP) | Challenge Scaffolding (`resources/`, `solve.py`) | Best Used When |
+| :--- | :--- | :---: | :---: | :---: | :--- |
+| **`--brain`** / **`--agent-brain`** | **Complete Agent Brain** | **Created** | **Created at Root** | **SKIPPED (0 files)** | **Existing repos & labs** (`flagyard-labs`) where IDE agent integration is desired without template clutter |
+| **`--with-agents-md`** | **Explicit Root Constitution** | **Created** | **Forces root `AGENTS.md`** | Determined by mode | Upgrading or initializing an agent-only folder to receive root `AGENTS.md` |
+| **`--agent-only`** | **Zero-Footprint Stealth** | **Created** | **ZERO files at root** | **SKIPPED (0 files)** | Adding AI skills into production codebases without modifying root repository files |
+| **`--no-scaffold`** | **Preserve Layout** | **Created** | **Created at Root** | **SKIPPED (0 files)** | Manual opt-out from challenge scaffolding templates |
+| **Smart Auto-Detect** | **Auto-Preservation** | **Created** | **Created at Root** | **AUTO-SKIPPED** | Automatically triggers `--no-scaffold` whenever target directory contains existing items |
+| **`--scaffold`** | **Full Competition Mode** | **Created** | **Created at Root** | **CREATED** | Fresh CTF competitions or empty challenge directories |
+
+---
+
+### Command Examples by Scenario
+
+#### 1. Deploy Agent Brain into an Existing Project (Zero Scaffolding Clutter)
+```bash
+# Via NPX (Recommended):
+npx ctf-agent init /path/to/existing-repo --brain -y
+
+# Via Python CLI:
+ctf-agent init /path/to/existing-repo --brain -y
+
+# Via UVX:
+uvx --from git+https://github.com/nvtruongops/CTF-Agent ctf-agent init /path/to/existing-repo --brain -y
+```
+
+#### 2. Synchronize & Update Existing Folder with Missing Root `AGENTS.md`
+If a workspace previously had only `.agents/` and lacked root `AGENTS.md`, use `--brain` or `--with-agents-md` during update to automatically install and synchronize it:
+```bash
+# Update agent framework and deploy/update root AGENTS.md + skills-lock.json:
+npx ctf-agent update /path/to/workspace --brain
+
+# Or explicitly ensure root AGENTS.md:
+npx ctf-agent update /path/to/workspace --with-agents-md
+```
+
+#### 3. Pure Stealth Injection (Zero Root Footprint)
+```bash
+# Only creates .agents/ directory; zero files at workspace root:
+npx ctf-agent init /path/to/repo --agent-only -y
+```
+
+---
+
 ### Workspace & Skill Updates (`ctf-agent update`)
 
 Keep deployed CTF workspaces up to date with new skills, agent personas, rules, and security references without losing custom modifications or challenge files:
@@ -434,6 +501,15 @@ python ctf_agent_cli.py update /path/to/ctf-workspace
 
 # Preview planned skill & rule updates without writing changes:
 npx ctf-agent update --dry-run
+
+# Synchronize complete agent brain and ensure root AGENTS.md is deployed/updated:
+npx ctf-agent update /path/to/ctf-workspace --brain
+
+# Force deployment or update of root AGENTS.md constitution:
+npx ctf-agent update /path/to/ctf-workspace --with-agents-md
+
+# Only update .agents/ internal assets, keeping workspace root clean:
+npx ctf-agent update /path/to/ctf-workspace --agent-only
 
 # Only synchronize skills (preserve rules, agents, and scripts):
 npx ctf-agent update --skills-only
