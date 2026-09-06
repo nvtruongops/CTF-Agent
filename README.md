@@ -1,5 +1,10 @@
 # CTF-Agent: Autonomous Security Intelligence & Competitive Exploitation Framework
 
+[![npm version](https://img.shields.io/npm/v/ctf-agent.svg)](https://www.npmjs.com/package/ctf-agent)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
+[![Docker Image](https://img.shields.io/badge/docker-ghcr.io%2Fnvtruongops%2Fctf--agent-blue.svg)](https://github.com/nvtruongops/CTF-Agent/pkgs/container/ctf-agent)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+
 > **A High-Performance AI Agent Architecture for Live CTF Competitions, Lab Vulnerability Audits, and Security Research.**  
 > Compatible with **Antigravity IDE**, **Cursor**, **Claude Code**, and **OpenAI Codex/Agent** ecosystems.
 
@@ -304,8 +309,8 @@ To maximize Time-to-Flag during live CTF competitions, `CTF-Agent` integrates a 
                                                  │
                 ┌────────────────────────────────┼────────────────────────────────┐
                 ▼                                ▼                                ▼
-      [1. Web & JS Ecosystem]        [2. Python Workstation]           [3. Modern UV Toolchain]
-        npx ctf-agent init          python scripts/ctf_init.py           uvx ctf-agent init
+      [1. Zero-Install NPX]           [2. Python Workstation]           [3. Modern UV Toolchain]
+       npx ctf-agent init               ctf-agent init (pip)           uvx --from git+... init
                 │                                │                                │
                 └────────────────────────────────┼────────────────────────────────┘
                                                  ▼
@@ -350,49 +355,52 @@ To maximize Time-to-Flag during live CTF competitions, `CTF-Agent` integrates a 
                             └─────────────────────────────────────────┘
 ```
 
-CTF-Agent provides three interchangeable execution engines tailored to different developer workflows:
+CTF-Agent provides three interchangeable execution engines tailored to different developer environments and host constraints:
 
-#### 1. Web & JavaScript Ecosystem (`npx`)
-Zero-clone setup for developers accustomed to npm and modern web toolchains:
+#### 1. Zero-Install Global NPX (`npx ctf-agent init`) - Recommended Default
+Zero-clone setup for developers accustomed to npm and modern command-line toolchains:
 ```bash
-# Initialize via NPX directly from GitHub (zero-clone):
-npx github:nvtruongops/CTF-Agent init
+# Initialize current workspace (Zero clone, zero manual install):
+npx ctf-agent init
 
 # Target a specific challenge workspace:
+npx ctf-agent init /path/to/ctf-workspace
+
+# Run preflight inspection in dry-run mode (zero filesystem writes):
+npx ctf-agent init --dry-run
+
+# Or run bleeding-edge unreleased commits directly from GitHub:
 npx github:nvtruongops/CTF-Agent init /path/to/ctf-workspace
-
-# Run preflight inspection in dry-run mode:
-npx github:nvtruongops/CTF-Agent init --dry-run
-
-# Or install locally for direct 'ctf-agent' command:
-npm link  # run inside cloned repo once
-ctf-agent init
 ```
+> [!NOTE]
+> **Prerequisites**: Node.js (v18+) and Python 3 (v3.10+). The `ctf-agent` npm package acts as a lightweight global launcher bridge that orchestrates the Python backend engine.
 
 #### 2. Native Python Security Workstation (`ctf-agent` / `ctf_agent_cli.py`)
-Pure standard library execution with zero external third-party dependencies:
+Pure standard library execution with zero third-party dependencies. Recommended for headless Linux boxes, Kali Linux, offline environments, or systems where Node.js is not installed:
 ```bash
-# Recommended: Install CLI entrypoint once (available everywhere):
-pip install -e .  # run inside cloned repo once
+# Scenario A: Globally installed CLI command (available anywhere):
+pip install -e .  # run once inside cloned repository
 ctf-agent init /path/to/ctf-workspace
 
-# Or execute directly from cloned repository root:
+# Scenario B: Run directly from cloned repository root:
 python ctf_agent_cli.py init /path/to/ctf-workspace
 
 # Automated unattended setup (auto-selects highest-scored backend and purpose):
 ctf-agent init /path/to/ctf-workspace --auto --purpose live-ctf
 
-# Preflight analysis and dry-run inspection (zero filesystem writes):
+# Preflight analysis and dry-run inspection:
 ctf-agent init --dry-run
 
 # Health check verification on an existing workspace:
 ctf-agent init /path/to/ctf-workspace --check-only
 ```
+> [!IMPORTANT]
+> **Prevent Relative Path Errors**: Do not execute `python scripts/ctf_init.py` from outside the cloned `CTF-Agent` directory. If you are in an arbitrary target folder without cloning, use `npx ctf-agent init`, the installed `ctf-agent` CLI, or the `uvx` toolchain below.
 
-#### 3. Modern Python Toolchain (`uvx`)
-Ultra-fast ephemeral execution powered by the Rust-based `uv` package manager:
+#### 3. Ephemeral Modern Python Toolchain (`uvx`)
+Ultra-fast ephemeral execution powered by the Rust-based `uv` package manager without Node.js or local `venv` activation:
 ```bash
-# Execute directly from repository source without installation:
+# Execute directly from repository source without cloning or manual installation:
 uvx --from git+https://github.com/nvtruongops/CTF-Agent ctf-agent init
 
 # Target a specific workspace:
@@ -401,6 +409,8 @@ uvx --from git+https://github.com/nvtruongops/CTF-Agent ctf-agent init /path/to/
 # Automated speedrun profile:
 uvx --from git+https://github.com/nvtruongops/CTF-Agent ctf-agent init --auto --purpose live-ctf
 ```
+> [!NOTE]
+> **Why `--from git+...` is Required**: Because `ctf-agent` is hosted on GitHub and npm rather than PyPI, the `--from git+https://github.com/nvtruongops/CTF-Agent` flag directs `uvx` to build directly from the verified source repository.
 
 ---
 
@@ -409,16 +419,16 @@ uvx --from git+https://github.com/nvtruongops/CTF-Agent ctf-agent init --auto --
 Keep deployed CTF workspaces up to date with new skills, agent personas, rules, and security references without losing custom modifications or challenge files:
 
 ```bash
-# Update current workspace via CLI (if installed):
-ctf-agent update
+# Method 1: Zero-install NPX:
+npx ctf-agent update /path/to/ctf-workspace
 
-# Or via NPX directly from GitHub:
-npx github:nvtruongops/CTF-Agent update /path/to/ctf-workspace
+# Method 2: Native CLI (if installed via pip or npm link):
+ctf-agent update /path/to/ctf-workspace
 
-# Modern toolchain (uvx):
+# Method 3: Ephemeral modern toolchain (uvx):
 uvx --from git+https://github.com/nvtruongops/CTF-Agent ctf-agent update /path/to/ctf-workspace
 
-# Native Python from cloned repo root:
+# Method 4: Native Python from cloned repository root:
 python ctf_agent_cli.py update /path/to/ctf-workspace
 
 # Preview planned skill & rule updates without writing changes:
