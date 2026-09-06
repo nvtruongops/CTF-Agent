@@ -229,3 +229,15 @@ def test_non_skill_directories_custom_file_preservation_and_backup(mock_workspac
         assert "# USER CUSTOM MODIFICATION" in backup_rule.read_text(encoding="utf-8")
         assert local_rule.read_text(encoding="utf-8") == upstream_rule.read_text(encoding="utf-8")
 
+
+def test_update_excludes_developer_scripts(mock_workspace):
+    """Verifies that updating workspace synchronizes primary scripts but strictly excludes local_ci.py and assets/."""
+    result = WorkspaceUpdater.update_workspace(mock_workspace, dry_run=False)
+    scripts_dir = mock_workspace / ".agents" / "scripts"
+
+    assert scripts_dir.is_dir()
+    assert (scripts_dir / "ctf_init.py").is_file(), "ctf_init.py must be synchronized"
+    assert (scripts_dir / "parallel_triage.py").is_file(), "parallel_triage.py must be synchronized"
+    assert not (scripts_dir / "local_ci.py").exists(), "local_ci.py must NEVER be copied into user workspace during update"
+    assert not (scripts_dir / "assets").exists(), "assets/ mirror must NEVER be copied into user workspace during update"
+

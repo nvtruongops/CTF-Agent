@@ -242,9 +242,12 @@ class WorkspaceUpdater:
         # 1. Inspect upstream files
         for src_file in src_dir.rglob("*"):
             if src_file.is_file():
-                if src_file.suffix == ".pyc" or "__pycache__" in src_file.parts:
+                if src_file.suffix in (".pyc", ".pyo", ".log", ".tmp", ".dmp") or "__pycache__" in src_file.parts:
                     continue
                 rel = src_file.relative_to(src_dir)
+                if src_dir.name == "scripts" or "scripts" in label:
+                    if any(part in ("local_ci.py", "assets", ".gitignore") for part in rel.parts):
+                        continue
                 upstream_rel_paths.add(rel)
                 target_file = dest_dir / rel
 

@@ -107,3 +107,30 @@ def test_scripts_ignore_and_exclusion_rules(repo_root: Path):
     inst_content = installer.read_text(encoding="utf-8")
     assert "local_ci.py" in inst_content, "install_as_agent.py must exclude local_ci.py from deployment"
     assert "assets" in inst_content, "install_as_agent.py must exclude assets from scripts/ deployment"
+
+
+def test_essential_initialization_and_tool_files_not_ignored(repo_root: Path):
+    """Verifies that all essential initialization and toolchain assets are preserved and NOT accidentally ignored."""
+    essential_scripts = [
+        "ctf_init.py",
+        "ctf_update.py",
+        "install_as_agent.py",
+        "install_ctf_tools.sh",
+        "ctf-tools.lock",
+        "parallel_triage.py",
+        "scope_guard.py",
+        "prompt_policy_sanitizer.py",
+        "extract_flags.py",
+        "workspace_cleaner.py",
+        "ctfd_client.py",
+        "cve_lookup.py",
+        "skill_validator.py",
+        "__init__.py",
+    ]
+    npmignore_text = (repo_root / ".npmignore").read_text(encoding="utf-8")
+    scripts_gi_text = (repo_root / "scripts" / ".gitignore").read_text(encoding="utf-8")
+
+    for s_name in essential_scripts:
+        assert f"scripts/{s_name}" not in npmignore_text, f"{s_name} must NOT be ignored in .npmignore"
+        assert f"\n{s_name}\n" not in f"\n{scripts_gi_text}\n", f"{s_name} must NOT be ignored in scripts/.gitignore"
+        assert (repo_root / "scripts" / s_name).is_file(), f"Missing essential script: {s_name}"
