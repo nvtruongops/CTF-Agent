@@ -1,0 +1,206 @@
+{
+  "version": "2.0.0",
+  "generated_at": "2026-09-06",
+  "profiles": {
+    "core": {
+      "description": "Tier 1: Essential system utilities, compilers, network tools, and base libraries",
+      "apt": [
+        "curl", "wget", "jq", "ripgrep", "git", "tmux", "file", "xxd",
+        "netcat-traditional", "socat", "nmap", "gcc", "g++", "make", "cmake",
+        "gdb", "python3", "python3-pip", "python3-venv", "python3-dev",
+        "libssl-dev", "libffi-dev", "bsdmainutils", "whois", "dnsutils"
+      ],
+      "pip": {
+        "requests": {"version": "2.32.5", "import": "requests"},
+        "shodan": {"version": "1.31.0", "import": "shodan"}
+      },
+      "verify_bins": ["curl", "wget", "jq", "rg", "git", "tmux", "file", "xxd", "nc", "socat", "nmap", "gcc", "gdb", "python3"]
+    },
+    "pwn": {
+      "description": "Tier 2: Binary exploitation, ROP generation, seccomp bypass, and heap tooling",
+      "apt": [
+        "gdb", "patchelf", "checksec", "qemu-user", "elfutils", "strace", "ltrace"
+      ],
+      "pip": {
+        "pwntools": {"version": "4.15.0", "import": "pwn"},
+        "ropper": {"version": "1.13.13", "import": "ropper"},
+        "ROPgadget": {"version": "7.7", "import": "ropgadget"},
+        "capstone": {"version": "5.0.3", "import": "capstone"},
+        "unicorn": {"version": "2.1.2", "import": "unicorn"},
+        "qiling": {"version": "1.4.6", "import": "qiling"}
+      },
+      "gem": [
+        {"name": "one_gadget", "version": "4.0.0"},
+        {"name": "seccomp-tools", "version": "1.6.1"}
+      ],
+      "verify_bins": ["gdb", "patchelf", "checksec", "ROPgadget", "ropper", "one_gadget", "seccomp-tools"],
+      "manual": ["pwndbg (https://github.com/pwndbg/pwndbg)"]
+    },
+    "rev": {
+      "description": "Tier 2: Reverse engineering, disassemblers, decompilers, and symbolics",
+      "apt": [
+        "radare2", "binutils", "upx-ucl"
+      ],
+      "pip": {
+        "angr": {"version": "9.3.4", "import": "angr"},
+        "lief": {"version": "0.17.6", "import": "lief"},
+        "uncompyle6": {"version": "3.9.3", "import": "uncompyle6"},
+        "frida-tools": {"version": "14.10.4", "import": "frida"}
+      },
+      "verify_bins": ["r2", "objdump", "readelf", "nm", "strings"],
+      "manual": [
+        "ghidra (https://ghidra-sre.org/)",
+        "pycdc (git clone https://github.com/zrax/pycdc && cmake . && make)",
+        "cutter (https://cutter.re/)",
+        "die / Detect It Easy (https://github.com/horsicq/Detect-It-Easy)"
+      ]
+    },
+    "crypto": {
+      "description": "Tier 2: Cryptanalysis, lattice reduction, number theory, and solvers",
+      "apt": [
+        "sagemath", "pari-gp", "libgmp-dev", "libmpfr-dev", "libmpc-dev"
+      ],
+      "pip": {
+        "pycryptodome": {"version": "3.23.0", "import": "Crypto"},
+        "z3-solver": {"version": "4.13.0.0", "import": "z3"},
+        "sympy": {"version": "1.14.0", "import": "sympy"},
+        "gmpy2": {"version": "2.3.0", "import": "gmpy2"},
+        "fpylll": {"version": "0.6.4", "import": "fpylll"},
+        "py_ecc": {"version": "8.0.0", "import": "py_ecc"},
+        "hashpumpy": {"version": "1.2", "import": "hashpumpy"}
+      },
+      "verify_bins": ["sage", "gp"],
+      "manual": ["RsaCtfTool (git clone https://github.com/RsaCtfTool/RsaCtfTool)"]
+    },
+    "forensics": {
+      "description": "Tier 2: Digital forensics, memory analysis, PCAP carvers, and file parsing",
+      "apt": [
+        "binwalk", "foremost", "libimage-exiftool-perl", "tshark", "sleuthkit",
+        "ffmpeg", "testdisk", "pcapfix", "yara", "bulk-extractor"
+      ],
+      "pip": {
+        "volatility3": {"version": "2.27.0", "import": "volatility3"},
+        "pefile": {"version": "2024.8.26", "import": "pefile"},
+        "oletools": {"version": "0.60.2", "import": "oletools"},
+        "Pillow": {"version": "11.3.0", "import": "PIL"},
+        "scapy": {"version": "2.7.0", "import": "scapy"},
+        "dissect.cobaltstrike": {"version": "1.2.1", "import": "dissect.cobaltstrike"}
+      },
+      "verify_bins": ["binwalk", "foremost", "exiftool", "tshark", "fls", "volatility3"]
+    },
+    "stego": {
+      "description": "Tier 2: Steganography, bit-plane inspection, and audio/image recovery",
+      "apt": [
+        "steghide", "pngcheck", "qpdf", "outguess"
+      ],
+      "gem": [
+        {"name": "zsteg", "version": "0.5.8"}
+      ],
+      "verify_bins": ["steghide", "pngcheck", "qpdf", "outguess", "zsteg"],
+      "manual": ["stegseek (https://github.com/RickdeJager/stegseek)"]
+    },
+    "web": {
+      "description": "Tier 2: Modern web exploitation, fuzzers, JWT, HTTP/2/3, and crawler pipelines",
+      "apt": [
+        "sqlmap", "nikto"
+      ],
+      "pip": {
+        "requests": {"version": "2.32.5", "import": "requests"},
+        "pyjwt": {"version": "2.10.1", "import": "jwt"},
+        "flask-unsign": {"version": "1.2.1", "import": "flask_unsign"},
+        "httpx": {"version": "0.28.1", "import": "httpx"},
+        "mitmproxy": {"version": "11.1.3", "import": "mitmproxy"},
+        "playwright": {"version": "1.50.0", "import": "playwright"}
+      },
+      "go": [
+        {"package": "github.com/ffuf/ffuf/v2", "version": "v2.1.0", "bin": "ffuf"},
+        {"package": "github.com/projectdiscovery/httpx/cmd/httpx", "version": "v1.6.9", "bin": "httpx"},
+        {"package": "github.com/projectdiscovery/nuclei/v3/cmd/nuclei", "version": "v3.3.8", "bin": "nuclei"},
+        {"package": "github.com/projectdiscovery/katana/cmd/katana", "version": "v1.1.2", "bin": "katana"}
+      ],
+      "verify_bins": ["sqlmap", "ffuf", "httpx", "nuclei", "mitmproxy"]
+    },
+    "mobile": {
+      "description": "Tier 2: Android & iOS reverse engineering, APK patching, and dynamic instrumentation",
+      "apt": [
+        "adb", "apktool"
+      ],
+      "pip": {
+        "frida-tools": {"version": "14.10.4", "import": "frida"},
+        "objection": {"version": "1.11.0", "import": "objection"}
+      },
+      "verify_bins": ["adb", "apktool", "frida", "objection"],
+      "manual": ["jadx (https://github.com/skylot/jadx)"]
+    },
+    "cloud": {
+      "description": "Tier 2: Container security, Kubernetes inspection, and cloud metadata testing",
+      "apt": [
+        "docker.io", "skopeo"
+      ],
+      "verify_bins": ["docker", "skopeo"],
+      "manual": [
+        "kubectl (https://kubernetes.io/docs/tasks/tools/)",
+        "helm (https://helm.sh/docs/intro/install/)",
+        "trivy (https://github.com/aquasecurity/trivy)"
+      ]
+    },
+    "ad": {
+      "description": "Tier 2: Active Directory, Kerberos, SMB, and Windows penetration testing",
+      "apt": [
+        "smbclient", "ldap-utils"
+      ],
+      "pip": {
+        "impacket": {"version": "0.12.0", "import": "impacket"},
+        "certipy-ad": {"version": "4.8.2", "import": "certipy"},
+        "bloodhound": {"version": "1.7.2", "import": "bloodhound"}
+      },
+      "verify_bins": ["smbclient", "ldapsearch"]
+    },
+    "kernel": {
+      "description": "Tier 2: Linux kernel exploitation, eBPF inspection, debugging, and tracing",
+      "apt": [
+        "qemu-system-x86", "pahole", "bpftrace", "linux-perf", "strace", "ltrace"
+      ],
+      "verify_bins": ["qemu-system-x86_64", "pahole", "bpftrace", "strace", "ltrace"]
+    },
+    "hardware": {
+      "description": "Tier 2: IoT firmware, serial debugging, JTAG, and multi-architecture cross tools",
+      "apt": [
+        "openocd", "minicom", "flashrom", "u-boot-tools", "gdb-multiarch"
+      ],
+      "pip": {
+        "esptool": {"version": "4.8.1", "import": "esptool"}
+      },
+      "verify_bins": ["openocd", "minicom", "flashrom", "gdb-multiarch", "esptool.py"]
+    },
+    "web3": {
+      "description": "Tier 2: Smart contract auditing, EVM interaction, and bytecode analysis",
+      "pip": {
+        "slither-analyzer": {"version": "0.10.4", "import": "slither"},
+        "solc-select": {"version": "1.2.0", "import": "solc_select"},
+        "py_ecc": {"version": "8.0.0", "import": "py_ecc"}
+      },
+      "verify_bins": ["cast", "forge", "anvil", "slither", "solc-select"],
+      "manual": ["Foundry (curl -L https://foundry.paradigm.xyz | bash && foundryup)"]
+    },
+    "wasm": {
+      "description": "Tier 2: WebAssembly binary analysis, disassembling, and execution",
+      "apt": [
+        "wabt"
+      ],
+      "verify_bins": ["wasm2wat", "wat2wasm", "wasm-decompile"],
+      "manual": ["wasmtime (curl https://wasmtime.dev/install.sh -sSf | bash)"]
+    },
+    "ai": {
+      "description": "Tier 2: Machine learning security, adversarial models, and safetensors analysis",
+      "pip": {
+        "safetensors": {"version": "0.5.3", "import": "safetensors"},
+        "torch": {"version": "2.6.0", "import": "torch"},
+        "transformers": {"version": "4.49.0", "import": "transformers"},
+        "numpy": {"version": "2.2.6", "import": "numpy"},
+        "matplotlib": {"version": "3.10.8", "import": "matplotlib"}
+      },
+      "verify_bins": []
+    }
+  }
+}

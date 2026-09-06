@@ -1,0 +1,13 @@
+services:
+  ctf-agent:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ctf-agent:latest
+    container_name: ctf_agent_sandbox
+    volumes:
+      - .:/workspace
+    network_mode: bridge
+    stdin_open: true
+    tty: true
+    privileged: true

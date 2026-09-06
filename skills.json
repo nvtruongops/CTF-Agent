@@ -1,0 +1,16 @@
+{
+  "$schema": "https://raw.githubusercontent.com/google/antigravity/main/schemas/skills.json",
+  "skills": [
+    "./skills/solve-challenge",
+    "./skills/ctf-web",
+    "./skills/ctf-pwn",
+    "./skills/ctf-crypto",
+    "./skills/ctf-reverse",
+    "./skills/ctf-forensics",
+    "./skills/ctf-ai-ml",
+    "./skills/ctf-malware",
+    "./skills/ctf-osint",
+    "./skills/ctf-misc",
+    "./skills/ctf-writeup"
+  ]
+}
