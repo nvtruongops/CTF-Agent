@@ -100,6 +100,7 @@ def deploy_to_workspace(
     wsl_profile: str = "core",
     wsl_distro: str = "kali-linux",
     agent_only: bool = False,
+    with_agents_md: bool = False,
 ):
     """Deploy CTF-Agent into target directory under .agents/, configure workspace files, and provision WSL toolchain."""
     dot_agents = target_path / ".agents"
@@ -221,6 +222,17 @@ def deploy_to_workspace(
             install_wsl_toolchain(target_path, profile=wsl_profile, distro=wsl_distro)
     elif agent_only:
         # Isolated agent-only mode: generate skills-lock inside .agents/ and skip root file modifications
+        if with_agents_md:
+            src_file = find_asset_file("AGENTS.md")
+            if src_file and src_file.exists():
+                dest_file = target_path / "AGENTS.md"
+                content = src_file.read_text(encoding="utf-8")
+                if target_path != REPO_ROOT:
+                    content = content.replace("](references/", "](.agents/references/")
+                    content = content.replace("](rules/", "](.agents/rules/")
+                dest_file.write_text(content, encoding="utf-8")
+                print(f"  [+] Configured workspace root: {dest_file} (Agent Brain Constitution)")
+
         skills_lock = {"version": 1, "skills": {}}
         skills_dir = dot_agents / "skills"
         if skills_dir.exists():
@@ -308,6 +320,8 @@ def main():
     parser.add_argument("--symlink", "--link", action="store_true", help="Use symlinks/junctions for workspace deployment to keep live sync")
     parser.add_argument("--setup-workspace", dest="setup_workspace", action="store_true", default=True, help="Configure workspace root AGENTS.md, mcp_config.json, skills.json (default: True)")
     parser.add_argument("--no-setup-workspace", "--agent-only", dest="agent_only", action="store_true", help="Only deploy .agents/ without modifying workspace root files")
+    parser.add_argument("--brain", "--agent-brain", dest="brain_only", action="store_true", help="Deploy only the Agent Brain (.agents/ + root AGENTS.md) without challenge scaffolding")
+    parser.add_argument("--with-agents-md", dest="with_agents_md", action="store_true", help="Ensure root AGENTS.md is deployed/updated even in agent-only mode")
     parser.add_argument("--wsl", dest="install_wsl", action="store_true", default=True, help="Automatically install CTF toolchain into WSL during setup (default: True)")
     parser.add_argument("--no-wsl", "--skip-toolchain", dest="install_wsl", action="store_false", help="Skip toolchain installation into backend")
     parser.add_argument("--wsl-profile", default="core", help="WSL toolchain profile to install: core, pwn, rev, crypto, forensics, web, all (default: core)")
@@ -329,15 +343,18 @@ def main():
         deploy_globally(force=args.force)
     elif args.target:
         target_dir = Path(args.target).resolve()
+        is_agent_only = args.agent_only and not args.brain_only
+        with_agents_md = args.with_agents_md or args.brain_only
         deploy_to_workspace(
             target_dir,
             use_symlink=args.symlink,
             force=args.force,
-            setup_workspace=(args.setup_workspace and not args.agent_only),
+            setup_workspace=(args.setup_workspace and not is_agent_only),
             install_wsl=args.install_wsl,
             wsl_profile=args.wsl_profile,
             wsl_distro=args.wsl_distro,
-            agent_only=args.agent_only,
+            agent_only=is_agent_only,
+            with_agents_md=with_agents_md,
         )
     else:
         parser.print_help()

@@ -241,3 +241,27 @@ def test_update_excludes_developer_scripts(mock_workspace):
     assert not (scripts_dir / "local_ci.py").exists(), "local_ci.py must NEVER be copied into user workspace during update"
     assert not (scripts_dir / "assets").exists(), "assets/ mirror must NEVER be copied into user workspace during update"
 
+
+def test_update_installs_agents_md_with_flag(tmp_path):
+    """Verifies that an agent-only workspace without root AGENTS.md receives it when --with-agents-md or --brain is passed."""
+    dot_agents = tmp_path / ".agents"
+    dot_agents.mkdir(parents=True)
+    (dot_agents / "skills").mkdir(parents=True)
+    (dot_agents / "AGENTS.md").write_text("# Internal Agent", encoding="utf-8")
+    (dot_agents / "skills-lock.json").write_text("{}", encoding="utf-8")
+
+    # Initial state: root AGENTS.md does NOT exist
+    assert not (tmp_path / "AGENTS.md").exists()
+
+    # 1. Update without with_agents_md (preserves agent-only clean root)
+    res1 = WorkspaceUpdater.update_workspace(tmp_path, dry_run=False, with_agents_md=False)
+    assert not (tmp_path / "AGENTS.md").exists()
+
+    # 2. Update with with_agents_md=True (installs root AGENTS.md)
+    res2 = WorkspaceUpdater.update_workspace(tmp_path, dry_run=False, with_agents_md=True)
+    assert (tmp_path / "AGENTS.md").is_file()
+    content = (tmp_path / "AGENTS.md").read_text(encoding="utf-8")
+    assert ".agents/references/" in content or "CTF AGENT CONSTITUTION" in content
+    assert (tmp_path / "skills-lock.json").is_file()
+
+

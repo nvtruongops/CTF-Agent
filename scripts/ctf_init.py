@@ -580,6 +580,7 @@ class WorkspaceProvisioner:
         skip_toolchain: bool = False,
         agent_only: bool = False,
         no_scaffold: bool = False,
+        with_agents_md: bool = False,
     ) -> bool:
         print(f"\n[*] Initializing workspace at: {workspace_path.resolve()}")
 
@@ -594,6 +595,7 @@ class WorkspaceProvisioner:
                 wsl_profile=profiles,
                 wsl_distro=distro,
                 agent_only=agent_only,
+                with_agents_md=with_agents_md,
             )
         else:
             print("[!] Error: install_as_agent module unavailable")
@@ -685,11 +687,18 @@ class HealthCheckRunner:
     """Verifies workspace file integrity, agent components, and backend availability."""
 
     @staticmethod
-    def check_workspace(workspace_path: Path, backend: str, distro: str, agent_only: bool = False) -> Dict[str, Any]:
+    def check_workspace(
+        workspace_path: Path,
+        backend: str,
+        distro: str,
+        agent_only: bool = False,
+        with_agents_md: bool = False,
+    ) -> Dict[str, Any]:
         results: Dict[str, Any] = {
             "workspace": str(workspace_path.resolve()),
             "backend": backend,
             "agent_only": agent_only,
+            "with_agents_md": with_agents_md,
             "checks": [],
             "all_passed": True,
         }
@@ -709,6 +718,10 @@ class HealthCheckRunner:
         if agent_only:
             agents_md = dot_agents / "AGENTS.md"
             record("agent_agents_md", agents_md.is_file(), f"Checked {agents_md}")
+
+            if with_agents_md:
+                root_agents_md = workspace_path / "AGENTS.md"
+                record("workspace_agents_md", root_agents_md.is_file(), f"Checked {root_agents_md}")
 
             skills_lock = dot_agents / "skills-lock.json"
             record("skills_lock_file", skills_lock.is_file(), f"Checked {skills_lock}")
@@ -837,6 +850,9 @@ def main():
     )
     parser.add_argument(
         "--auto",
+        "-y",
+        "--yes",
+        dest="auto",
         action="store_true",
         help="Run non-interactively, automatically accepting recommended backend and profile",
     )
@@ -882,6 +898,18 @@ def main():
         help="Deploy only the .agents/ brain directory without creating any root files, root scaffolding, or root scripts",
     )
     parser.add_argument(
+        "--brain",
+        "--agent-brain",
+        dest="brain_only",
+        action="store_true",
+        help="Deploy only the Agent Brain (.agents/ directory + root AGENTS.md constitution) without challenge scaffolding",
+    )
+    parser.add_argument(
+        "--with-agents-md",
+        action="store_true",
+        help="Ensure root AGENTS.md constitution is deployed/updated even in agent-only mode",
+    )
+    parser.add_argument(
         "--no-scaffold",
         action="store_true",
         help="Skip creating challenge scaffolding files (resources/, notes/, solve.py, .env.example)",
@@ -914,9 +942,15 @@ def main():
     env = EnvironmentDetector.run_preflight(ws_path)
     scoring = CapabilityScoringEngine.calculate_scores(env, workload=args.purpose)
 
-    # Resolve agent_only and scaffolding modes
+    # Resolve agent_only, brain, and scaffolding modes
     chosen_agent_only = args.agent_only
-    if chosen_agent_only:
+    chosen_with_agents_md = args.with_agents_md
+
+    if args.brain_only:
+        chosen_agent_only = False
+        chosen_no_scaffold = True
+        chosen_with_agents_md = True
+    elif chosen_agent_only:
         chosen_no_scaffold = True
     elif args.no_scaffold:
         chosen_no_scaffold = True
@@ -938,6 +972,7 @@ def main():
             backend_target,
             distro_target,
             agent_only=chosen_agent_only,
+            with_agents_md=chosen_with_agents_md,
         )
         if args.json:
             print(json.dumps(report, indent=2))
@@ -955,6 +990,8 @@ def main():
             "selected_profiles": args.profile or PURPOSE_PROFILES[args.purpose]["profiles"],
             "agent_only": chosen_agent_only,
             "no_scaffold": chosen_no_scaffold,
+            "brain_only": args.brain_only,
+            "with_agents_md": chosen_with_agents_md,
         }
         print(json.dumps(payload, indent=2))
         sys.exit(0)
@@ -977,6 +1014,8 @@ def main():
         print(f"    Skip Toolchain   : {args.skip_toolchain}")
         print(f"    Agent Only       : {chosen_agent_only}")
         print(f"    Skip Scaffolding : {chosen_no_scaffold}")
+        if chosen_with_agents_md or args.brain_only:
+            print(f"    Agent Brain (MD) : Enabled (root AGENTS.md constitution deployed)")
         if not env.get("is_empty", True) and not args.scaffold and not chosen_agent_only:
             print(f"    Project Status   : Existing project layout preserved (auto-detected {env.get('existing_items_count', 0)} items)")
         if args.auto or not sys.stdin.isatty():
@@ -1042,8 +1081,10 @@ def main():
         print(f"    Auto-selected backend    : {chosen_backend.upper()} ({chosen_distro})")
         print(f"    Workload purpose         : {chosen_purpose} ({PURPOSE_PROFILES[chosen_purpose]['title']})")
         print(f"    Toolchain installation   : {'DISABLED' if chosen_skip_toolchain else 'ENABLED (' + chosen_profiles + ')'}")
-        if chosen_agent_only:
-            print("    Deployment Mode          : AGENT-ONLY (.agents/ brain only, zero root scaffolding)")
+        if args.brain_only:
+            print("    Deployment Mode          : AGENT-BRAIN (.agents/ brain + root AGENTS.md, zero scaffolding)")
+        elif chosen_agent_only:
+            print(f"    Deployment Mode          : AGENT-ONLY (.agents/ brain only{', with root AGENTS.md' if chosen_with_agents_md else ', zero root files'})")
         elif chosen_no_scaffold:
             print("    Scaffolding              : SKIPPED (existing project layout preserved)")
         else:
@@ -1089,6 +1130,7 @@ def main():
         skip_toolchain=chosen_skip_toolchain,
         agent_only=chosen_agent_only,
         no_scaffold=chosen_no_scaffold,
+        with_agents_md=chosen_with_agents_md,
     )
 
     if not success:
@@ -1101,6 +1143,7 @@ def main():
         chosen_backend,
         chosen_distro,
         agent_only=chosen_agent_only,
+        with_agents_md=chosen_with_agents_md,
     )
     print_health_report(health_report)
 

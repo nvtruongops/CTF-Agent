@@ -345,3 +345,30 @@ def test_cli_dry_run_auto_detects_existing_project(tmp_path):
     assert "Existing project layout preserved" in res.stdout
 
 
+def test_init_brain_flag(tmp_path):
+    # Test --brain provisions .agents/ + root AGENTS.md + IDE config, but NO scaffolding
+    cli_path = REPO_ROOT / "ctf_agent_cli.py"
+    target_dir = tmp_path / "target_sub"
+    target_dir.mkdir()
+    res = subprocess.run(
+        [sys.executable, str(cli_path), "init", str(target_dir), "--brain", "-y", "--skip-toolchain", "--backend", "none"],
+        capture_output=True,
+        text=True,
+        check=False,
+        stdin=subprocess.DEVNULL,
+        timeout=20,
+    )
+    assert res.returncode == 0
+    assert (target_dir / ".agents").is_dir()
+    assert (target_dir / ".agents" / "AGENTS.md").is_file()
+    assert (target_dir / "AGENTS.md").is_file(), "Root AGENTS.md must exist when --brain is used"
+    assert (target_dir / "skills-lock.json").is_file()
+    assert (target_dir / "mcp_config.json").is_file()
+    # Zero challenge scaffolding
+    assert not (target_dir / "resources").exists()
+    assert not (target_dir / "notes").exists()
+    assert not (target_dir / "solve.py").exists()
+    assert not (target_dir / ".env.example").exists()
+
+
+

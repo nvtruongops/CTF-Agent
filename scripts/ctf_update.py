@@ -285,6 +285,8 @@ class WorkspaceUpdater:
         skills_only: bool = False,
         dry_run: bool = False,
         force: bool = False,
+        with_agents_md: bool = False,
+        agent_only: bool = False,
     ) -> Dict[str, Any]:
         """Executes synchronization of skills and support files into target workspace."""
         dot_agents = workspace_path / ".agents"
@@ -399,8 +401,9 @@ class WorkspaceUpdater:
                         action_sink.append(f"{'Would update' if dry_run else 'Updated'} .agents/{f_name}{' (saved .bak)' if not dry_run else ''}")
 
             # Workspace root files (AGENTS.md, mcp_config.json, skills.json)
-            # If the workspace was deployed in agent-only mode, keep root clean
-            is_agent_only_workspace = not (workspace_path / "AGENTS.md").exists() and (dot_agents / "AGENTS.md").exists()
+            # If the workspace was deployed in agent-only mode without AGENTS.md, keep root clean unless with_agents_md is requested
+            has_root_agents_md = (workspace_path / "AGENTS.md").exists()
+            is_agent_only_workspace = (agent_only or not has_root_agents_md) and not with_agents_md
             if not is_agent_only_workspace:
                 for f_name in WORKSPACE_ROOT_FILES:
                     src_file = find_asset_file(f_name)
@@ -414,14 +417,16 @@ class WorkspaceUpdater:
                             if dest_content != content:
                                 if not dry_run:
                                     dest_file.write_text(content, encoding="utf-8", newline="\n")
-                                action_sink.append(f"{'Would update' if dry_run else 'Updated'} workspace root: {f_name}")
+                                action_verb = "Installed" if dest_content is None else "Updated"
+                                action_sink.append(f"{'Would install' if dest_content is None and dry_run else ('Would update' if dry_run else action_verb)} workspace root: {f_name}")
                         else:
                             up_h = cls.compute_file_hash(src_file)
                             loc_h = cls.compute_file_hash(dest_file)
                             if up_h != loc_h:
                                 if not dry_run:
                                     shutil.copy2(src_file, dest_file)
-                                action_sink.append(f"{'Would update' if dry_run else 'Updated'} workspace root: {f_name}")
+                                action_verb = "Installed" if loc_h is None else "Updated"
+                                action_sink.append(f"{'Would install' if loc_h is None and dry_run else ('Would update' if dry_run else action_verb)} workspace root: {f_name}")
 
             # Workspace scripts/ synchronization if folder exists
             ws_scripts = workspace_path / "scripts"
@@ -446,7 +451,7 @@ class WorkspaceUpdater:
                         }
 
         lock_target = workspace_path / "skills-lock.json"
-        if not lock_target.exists() and (dot_agents / "skills-lock.json").exists():
+        if not lock_target.exists() and (dot_agents / "skills-lock.json").exists() and is_agent_only_workspace:
             lock_target = dot_agents / "skills-lock.json"
         lock_content = json.dumps(skills_lock, indent=2) + "\n"
         existing_lock = lock_target.read_text(encoding="utf-8") if lock_target.exists() else None
@@ -570,6 +575,19 @@ def main():
     parser.add_argument("--global", dest="is_global", action="store_true", help="Update global Antigravity config (~/.gemini/config/)")
     parser.add_argument("--skills-only", action="store_true", help="Only update skills, preserving rules, agents, and scripts")
     parser.add_argument("--dry-run", action="store_true", help="Inspect and display planned changes without modifying files")
+    parser.add_argument("--agent-only", action="store_true", help="Only update .agents/ internal assets, keeping workspace root clean")
+    parser.add_argument(
+        "--with-agents-md",
+        action="store_true",
+        help="Ensure root AGENTS.md constitution is installed or updated in workspace root",
+    )
+    parser.add_argument(
+        "--brain",
+        "--agent-brain",
+        dest="brain_only",
+        action="store_true",
+        help="Synchronize complete agent brain (.agents/ + root AGENTS.md + MCP configs)",
+    )
     parser.add_argument("--force", "-f", action="store_true", help="Overwrite modified skills without interactive prompt")
     parser.add_argument("--json", action="store_true", help="Output update report as JSON")
 
@@ -580,11 +598,15 @@ def main():
             result = WorkspaceUpdater.update_globally(dry_run=args.dry_run, force=args.force)
         else:
             workspace = WorkspaceUpdater.resolve_workspace(args.target)
+            with_md = bool(args.with_agents_md or args.brain_only)
+            agent_only = bool(args.agent_only and not with_md)
             result = WorkspaceUpdater.update_workspace(
                 workspace,
                 skills_only=args.skills_only,
                 dry_run=args.dry_run,
                 force=args.force,
+                with_agents_md=with_md,
+                agent_only=agent_only,
             )
 
         if args.json:
