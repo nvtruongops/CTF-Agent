@@ -1,7 +1,7 @@
 # CTF-Agent: Autonomous Security Intelligence & Competitive Exploitation Framework
 
 [![npm version](https://img.shields.io/npm/v/ctf-agent.svg)](https://www.npmjs.com/package/ctf-agent)
-[![Release](https://img.shields.io/badge/release-v1.3.1-blue.svg)](https://github.com/nvtruongops/CTF-Agent/releases)
+[![Release](https://img.shields.io/badge/release-v1.3.2-blue.svg)](https://github.com/nvtruongops/CTF-Agent/releases)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![Docker Image](https://img.shields.io/badge/docker-ghcr.io%2Fnvtruongops%2Fctf--agent-blue.svg)](https://github.com/nvtruongops/CTF-Agent/pkgs/container/ctf-agent)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
