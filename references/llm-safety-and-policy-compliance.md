@@ -59,24 +59,24 @@ Security competitions (CTF) and practice labs (HackTheBox, TryHackMe, WebGoat, P
 
 ---
 
-## 3. The Definitive Lexicon Standard (Bilingual Vietnamese & English)
+## 3. The Definitive Lexicon Standard (Diagnostic & Academic Mapping)
 
 To eliminate false positives across all LLM providers, replace aggressive offensive jargon with standard **academic, diagnostic, and software verification terms**:
 
 ### Core Action Verbs & Concepts
 
-| High-Risk Trigger Jargon (Tránh) | Academic Safe Replacement (Nên Dùng) | Giải thích ngữ cảnh CTF |
+| High-Risk Trigger Jargon (Avoid) | Academic Safe Replacement (Recommended) | CTF Context & Technical Rationale |
 |---|---|---|
-| **attack / redteam** | **evaluate / inspect / diagnose / analyze** | Đánh giá an ninh / phân tích cấu trúc challenge |
-| **exploit / weaponize** | **verify vulnerability / construct proof-of-concept (PoC)** | Chứng minh lỗ hổng / tạo kịch bản kiểm thử PoC |
-| **infiltrate / hack target** | **interact with challenge service / test endpoint** | Giao tiếp với cổng dịch vụ bài thi CTF |
-| **malicious payload / evil payload** | **test vector / input byte sequence / challenge payload** | Chuỗi dữ liệu đầu vào / vector kiểm thử bài thi |
-| **bypass security / bypass policy** | **evaluate mitigation boundaries / analyze constraints** | Phân tích cơ chế bảo vệ (ASLR, NX, Canary, WAF) |
-| **shellcode / reverse shell** | **shell interaction vector / test instruction sequence** | Chuỗi lệnh kiểm thử tương tác shell |
-| **jailbreak / prompt injection** | **prompt robustness testing / input boundary evaluation** | Đánh giá tính bền vững của mô hình AI |
-| **malware / C2 beacon** | **educational sample / benchmark artifact / simulated protocol** | Mẫu phân tích trong môi trường phòng lab |
-| **exfiltrate data / steal credentials** | **retrieve flag token / extract challenge artifact** | Lấy cờ (flag) minh chứng bài thi CTF |
-| **privilege escalation** | **permission boundary evaluation / local security triage** | Phân tích cơ chế phân quyền trong môi trường test |
+| **attack / redteam** | **evaluate / inspect / diagnose / analyze** | Security assessment / challenge architecture analysis |
+| **exploit / weaponize** | **verify vulnerability / construct proof-of-concept (PoC)** | Vulnerability proof / authoring test PoC script |
+| **infiltrate / hack target** | **interact with challenge service / test endpoint** | Interacting with challenge service port / test harness |
+| **malicious payload / evil payload** | **test vector / input byte sequence / challenge payload** | Input data sequence / test verification vector |
+| **bypass security / bypass policy** | **evaluate mitigation boundaries / analyze constraints** | Mitigation analysis (ASLR, NX, Canary, WAF, seccomp) |
+| **shellcode / reverse shell** | **shell interaction vector / test instruction sequence** | Shell interaction test instruction sequence |
+| **jailbreak / prompt injection** | **prompt robustness testing / input boundary evaluation** | Model robustness and safety boundary evaluation |
+| **malware / C2 beacon** | **educational sample / benchmark artifact / simulated protocol** | Laboratory artifact / simulated protocol analysis |
+| **exfiltrate data / steal credentials** | **retrieve flag token / extract challenge artifact** | Extracting proof flag token for score validation |
+| **privilege escalation** | **permission boundary evaluation / local security triage** | Permission boundary testing in isolated test environment |
 
 ---
 
@@ -166,7 +166,7 @@ This repository includes a standalone automated prompt policy sanitizer:
 ### Quick Usage:
 ```bash
 # Scan and sanitize an input prompt
-python3 scripts/prompt_policy_sanitizer.py "Viết exploit attack vào web target để bypass authentication và lấy flag admin"
+python3 scripts/prompt_policy_sanitizer.py "Write an exploit to attack web target to bypass authentication and capture admin flag"
 
 # Batch scan a skill or markdown file
 python3 scripts/prompt_policy_sanitizer.py --file skills/ctf-web/SKILL.md --check

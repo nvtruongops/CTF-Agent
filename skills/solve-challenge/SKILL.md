@@ -76,12 +76,12 @@ Invoke `/ctf-misc` and load its `ctfd-navigation.md` for the full API reference 
 Determine the operational profile before beginning exploitation:
 
 1. **Blitz / Speedrun Mode (`--mode blitz`, `--fast`)**:
-   - **Trigger**: Active CTF competitions, time pressure, or prompts like "làm nhanh", "tìm cờ nhanh", "blitz", "speedrun".
+   - **Trigger**: Active CTF competitions, time pressure, or prompts like "speedrun", "fast", "blitz", "find flag quickly".
    - **Primary Objective**: Minimal Time-to-Flag (First Blood).
    - **Behavioral Rule**: Fast triage, tight timeouts (30-60s max per attempt), **Stop-on-Flag (HALT immediately)**, zero doc/writeup overhead, auto-clean temporary scratch files, print flag banner, and exit.
 
 2. **Deep Analysis / Lab Mode (`--mode deep`, `--deep`, `--lab`)**:
-   - **Trigger**: Lab challenges (HTB, PortSwigger, pwnable.tw), security audits, research, or prompts like "phân tích sâu", "tạo writeup", "viết docs".
+   - **Trigger**: Lab challenges (HTB, PortSwigger, pwnable.tw), security audits, research, or prompts like "deep analysis", "detailed writeup", "write docs", "root cause analysis".
    - **Primary Objective**: Security rigor, exhaustive Root Cause Analysis (RCA), and publication-ready documentation.
    - **Behavioral Rule**: Reverse engineering, memory/math layout documentation, artifact preservation in `resources/`, invoke `/ctf-writeup` to generate standard `writeup.md`, and create self-contained `solve.py`.
 

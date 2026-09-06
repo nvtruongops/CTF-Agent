@@ -352,11 +352,11 @@ img.transpose(Image.FLIP_LEFT_RIGHT).save('flipped.jpg')
 - Reflection in decorative water pool is a common design
 
 **Search strategy:**
-- Google: `"letras monumentales" [city name]` or `"letreiro turístico" [city]`
+- Google: `"letras monumentales" [city name]` or `"letreiro turistico" [city]`
 - OpenStreetMap: search for nodes tagged as `tourism=attraction` near the city center
 - Google Maps: search `[city name] sign` or `[city name] letters` and check photos
 
-**Key insight:** These monumental letter installations ("letras monumentales" in Spanish, "letreiro turístico" in Portuguese) are extremely common in Latin American cities. The exact GPS coordinates of the installation can be found on OpenStreetMap or Google Maps photo pins.
+**Key insight:** These monumental letter installations ("letras monumentales" in Spanish, "letreiro turistico" in Portuguese) are extremely common in Latin American cities. The exact GPS coordinates of the installation can be found on OpenStreetMap or Google Maps photo pins.
 
 ---
 
