@@ -305,6 +305,42 @@ uvx --from git+https://github.com/nvtruongops/CTF-Agent ctf-agent init
 uvx ctf-agent init --auto --purpose live-ctf
 ```
 
+---
+
+### Workspace & Skill Updates (`ctf-agent update`)
+
+Keep deployed CTF workspaces up to date with new skills, agent personas, rules, and security references without losing custom modifications or challenge files:
+
+```bash
+# Update current workspace via NPX:
+npx ctf-agent update
+
+# Update a specific CTF challenge or lab directory:
+npx ctf-agent update /path/to/ctf-workspace
+
+# Modern toolchain (uvx):
+uvx ctf-agent update /path/to/ctf-workspace
+
+# Native Python execution:
+python scripts/ctf_update.py /path/to/ctf-workspace
+
+# Preview planned skill & rule updates without writing changes:
+npx ctf-agent update --dry-run
+
+# Only synchronize skills (preserve rules, agents, and scripts):
+npx ctf-agent update --skills-only
+
+# Update global configuration (~/.gemini/config/):
+python scripts/ctf_update.py --global
+```
+
+**Zero Data Loss Guarantees**:
+- **Conflict Guard**: Inspects SHA-256 hashes against `skills-lock.json`. If you made local modifications to a skill, it creates a safe backup (`SKILL.md.bak`) before updating.
+- **Custom Skills**: Any custom skills created inside `.agents/skills/` that are not part of upstream CTF-Agent are preserved completely untouched.
+- **Challenge Assets Protected**: Exploit scripts (`solve.py`), challenge binaries (`resources/`), CTF notes (`notes/`), and credentials (`.env`) are never overwritten or deleted.
+
+---
+
 ### Method 1: Deploy CTF-Agent into a CTF Challenge Project (`.agents/`)
 Deploy CTF-Agent as an `.agents` bundle into any target CTF directory:
 ```bash

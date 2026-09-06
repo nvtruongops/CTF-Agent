@@ -228,6 +228,12 @@ def main():
         ctf_init.main()
         return
 
+    if len(sys.argv) > 1 and sys.argv[1] in ("update", "--update"):
+        import ctf_update
+        sys.argv = [sys.argv[0]] + sys.argv[2:]
+        ctf_update.main()
+        return
+
     parser = argparse.ArgumentParser(description="CTF-Agent Workspace & Global Deployment Manager")
     parser.add_argument("target", nargs="?", help="Target CTF workspace directory (deploys as .agents/)")
     parser.add_argument("--global", dest="is_global", action="store_true", help="Install CTF skills, rules, and subagents globally into ~/.gemini/config/")
@@ -239,9 +245,17 @@ def main():
     parser.add_argument("--wsl-profile", default="core", help="WSL toolchain profile to install: core, pwn, rev, crypto, forensics, web, all (default: core)")
     parser.add_argument("--wsl-distro", default="kali-linux", help="WSL distribution target (default: kali-linux)")
     parser.add_argument("--init", dest="is_init", action="store_true", help="Run intelligent preflight detector & workspace initializer")
+    parser.add_argument("--update", dest="is_update", action="store_true", help="Run workspace & skill update engine")
     parser.add_argument("--force", "-f", action="store_true", help="Overwrite existing files or directories")
 
     args = parser.parse_args()
+
+    if args.is_update:
+        import ctf_update
+        workspace = ctf_update.WorkspaceUpdater.resolve_workspace(args.target)
+        res = ctf_update.WorkspaceUpdater.update_workspace(workspace, force=args.force)
+        ctf_update.print_update_report(res)
+        return
 
     if args.is_global:
         deploy_globally(force=args.force)

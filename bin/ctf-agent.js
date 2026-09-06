@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * CTF-Agent Node.js & NPX Launcher
- * Zero-dependency bridge from npm/npx ecosystems to CTF-Agent initialization engine.
+ * Zero-dependency bridge from npm/npx ecosystems to CTF-Agent initialization and update engines.
  */
 
 const { spawn, spawnSync } = require('child_process');
@@ -66,21 +66,27 @@ function main() {
     process.exit(1);
   }
 
-  const scriptPath = path.join(__dirname, '..', 'scripts', 'ctf_init.py');
+  let scriptFile = 'ctf_init.py';
+  let forwardArgs = [];
+
+  if (args.length > 0 && args[0] === 'update') {
+    scriptFile = 'ctf_update.py';
+    forwardArgs = args.slice(1);
+  } else if (args.length > 0 && args[0] === 'init') {
+    scriptFile = 'ctf_init.py';
+    forwardArgs = args.slice(1);
+  } else {
+    scriptFile = 'ctf_init.py';
+    forwardArgs = args;
+  }
+
+  const scriptPath = path.join(__dirname, '..', 'scripts', scriptFile);
   if (!fs.existsSync(scriptPath)) {
-    console.error(`ERROR: Initialization script not found at ${scriptPath}`);
+    console.error(`ERROR: Target script not found at ${scriptPath}`);
     process.exit(1);
   }
 
-  // Normalize arguments: if first argument is "init", strip it for ctf_init.py
-  let forwardArgs = [scriptPath];
-  if (args.length > 0 && args[0] === 'init') {
-    forwardArgs = forwardArgs.concat(args.slice(1));
-  } else {
-    forwardArgs = forwardArgs.concat(args);
-  }
-
-  const child = spawn(pythonBin, forwardArgs, {
+  const child = spawn(pythonBin, [scriptPath, ...forwardArgs], {
     stdio: 'inherit',
     windowsHide: false
   });
