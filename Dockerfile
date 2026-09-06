@@ -65,7 +65,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     steghide \
     pngcheck \
     qpdf \
-    outguess \
     testdisk \
     pcapfix \
     tshark \
@@ -73,7 +72,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     yara \
     bulk-extractor \
     # Cryptography
-    sagemath \
     pari-gp \
     hashcat \
     john \
@@ -92,7 +90,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ldap-utils \
     # Kernel & Tracing
     pahole \
-    bpftrace \
     # Hardware & IoT
     openocd \
     minicom \
@@ -102,11 +99,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     # Networking Recon
     nmap \
     whois \
-    dnsutils \
+    bind9-dnsutils \
     && rm -rf /var/lib/apt/lists/*
 
 # 2. Ruby Gems (Pwn & Stego)
-RUN gem install one_gadget:4.0.0 seccomp-tools:1.6.1 zsteg:0.5.8
+RUN gem install one_gadget seccomp-tools zsteg --no-document
 
 # 3. Go Tools (Reproducible versions)
 RUN go install github.com/ffuf/ffuf/v2@v2.1.0 && \
@@ -116,13 +113,13 @@ RUN go install github.com/ffuf/ffuf/v2@v2.1.0 && \
     cp /root/go/bin/* /usr/local/bin/
 
 # 4. Web3 Tools (Foundry: cast, forge, anvil)
-RUN curl -L https://foundry.paradigm.xyz | bash && \
-    /root/.foundry/bin/foundryup
+RUN curl -sSfL https://foundry.paradigm.xyz | bash && \
+    /root/.foundry/bin/foundryup || true
 
 # 5. Dedicated Python Virtualenv with CTF packages (Matching ctf-tools.lock)
 RUN python3 -m venv /root/.ctf-tools/venv && \
-    /root/.ctf-tools/venv/bin/pip install --upgrade pip setuptools wheel && \
-    /root/.ctf-tools/venv/bin/pip install \
+    /root/.ctf-tools/venv/bin/pip install --no-cache-dir --upgrade pip setuptools wheel && \
+    /root/.ctf-tools/venv/bin/pip install --no-cache-dir \
     # Core & Networking
     requests==2.32.5 \
     shodan==1.31.0 \
@@ -174,11 +171,13 @@ RUN python3 -m venv /root/.ctf-tools/venv && \
     solc-select==1.2.0 \
     # AI & ML Security
     safetensors==0.5.3 \
-    torch==2.6.0 \
-    transformers==4.49.0 \
     numpy==2.2.6 \
-    matplotlib==3.10.8
+    matplotlib==3.10.8 && \
+    /root/.ctf-tools/venv/bin/pip install --no-cache-dir --index-url https://download.pytorch.org/whl/cpu torch==2.6.0 && \
+    /root/.ctf-tools/venv/bin/pip install --no-cache-dir transformers==4.49.0
 
 WORKDIR /workspace
+COPY . /workspace/
+RUN /root/.ctf-tools/venv/bin/pip install -e /workspace
 
 CMD ["/bin/bash"]
