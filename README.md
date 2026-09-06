@@ -352,49 +352,54 @@ To maximize Time-to-Flag during live CTF competitions, `CTF-Agent` integrates a 
 
 CTF-Agent provides three interchangeable execution engines tailored to different developer workflows:
 
-#### 1. Web & JavaScript Ecosystem (`npx ctf-agent init`)
+#### 1. Web & JavaScript Ecosystem (`npx`)
 Zero-clone setup for developers accustomed to npm and modern web toolchains:
 ```bash
-# Initialize current workspace via NPX:
-npx ctf-agent init
+# Initialize via NPX directly from GitHub (zero-clone):
+npx github:nvtruongops/CTF-Agent init
 
 # Target a specific challenge workspace:
-npx ctf-agent init /path/to/ctf-workspace
+npx github:nvtruongops/CTF-Agent init /path/to/ctf-workspace
 
 # Run preflight inspection in dry-run mode:
-npx ctf-agent init --dry-run
+npx github:nvtruongops/CTF-Agent init --dry-run
+
+# Or install locally for direct 'ctf-agent' command:
+npm link  # run inside cloned repo once
+ctf-agent init
 ```
 
-#### 2. Native Python Security Workstation (`python scripts/ctf_init.py`)
+#### 2. Native Python Security Workstation (`ctf-agent` / `ctf_agent_cli.py`)
 Pure standard library execution with zero external third-party dependencies:
 ```bash
-# Interactive setup wizard:
-python scripts/ctf_init.py /path/to/ctf-workspace
+# Recommended: Install CLI entrypoint once (available everywhere):
+pip install -e .  # run inside cloned repo once
+ctf-agent init /path/to/ctf-workspace
 
-# Or via install_as_agent wrapper:
-python scripts/install_as_agent.py init /path/to/ctf-workspace
+# Or execute directly from cloned repository root:
+python ctf_agent_cli.py init /path/to/ctf-workspace
 
 # Automated unattended setup (auto-selects highest-scored backend and purpose):
-python scripts/ctf_init.py /path/to/ctf-workspace --auto --purpose live-ctf
+ctf-agent init /path/to/ctf-workspace --auto --purpose live-ctf
 
 # Preflight analysis and dry-run inspection (zero filesystem writes):
-python scripts/ctf_init.py --dry-run
+ctf-agent init --dry-run
 
 # Health check verification on an existing workspace:
-python scripts/ctf_init.py /path/to/ctf-workspace --check-only
+ctf-agent init /path/to/ctf-workspace --check-only
 ```
 
-#### 3. Modern Python Toolchain (`uvx ctf-agent init`)
+#### 3. Modern Python Toolchain (`uvx`)
 Ultra-fast ephemeral execution powered by the Rust-based `uv` package manager:
 ```bash
-# Initialize workspace via UVX directly:
-uvx ctf-agent init
-
-# Execute directly from repository source:
+# Execute directly from repository source without installation:
 uvx --from git+https://github.com/nvtruongops/CTF-Agent ctf-agent init
 
+# Target a specific workspace:
+uvx --from git+https://github.com/nvtruongops/CTF-Agent ctf-agent init /path/to/ctf-workspace
+
 # Automated speedrun profile:
-uvx ctf-agent init --auto --purpose live-ctf
+uvx --from git+https://github.com/nvtruongops/CTF-Agent ctf-agent init --auto --purpose live-ctf
 ```
 
 ---
@@ -404,17 +409,17 @@ uvx ctf-agent init --auto --purpose live-ctf
 Keep deployed CTF workspaces up to date with new skills, agent personas, rules, and security references without losing custom modifications or challenge files:
 
 ```bash
-# Update current workspace via NPX:
-npx ctf-agent update
+# Update current workspace via CLI (if installed):
+ctf-agent update
 
-# Update a specific CTF challenge or lab directory:
-npx ctf-agent update /path/to/ctf-workspace
+# Or via NPX directly from GitHub:
+npx github:nvtruongops/CTF-Agent update /path/to/ctf-workspace
 
 # Modern toolchain (uvx):
-uvx ctf-agent update /path/to/ctf-workspace
+uvx --from git+https://github.com/nvtruongops/CTF-Agent ctf-agent update /path/to/ctf-workspace
 
-# Native Python execution:
-python scripts/ctf_update.py /path/to/ctf-workspace
+# Native Python from cloned repo root:
+python ctf_agent_cli.py update /path/to/ctf-workspace
 
 # Preview planned skill & rule updates without writing changes:
 npx ctf-agent update --dry-run
