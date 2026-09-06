@@ -1,0 +1,45 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyc
+*.pyo
+
+# Testing & Caches
+.pytest_cache/
+.coverage
+htmlcov/
+tests/
+
+# Virtual Environments
+venv/
+.venv/
+env/
+ENV/
+
+# CodeGraph & Antigravity IDE artifacts
+.codegraph/
+.gemini/
+.vscode/
+.idea/
+
+# CTF runtime scratch, dumps & crash logs
+*.core
+core.*
+*.dmp
+*.tmp
+*.log
+resources/scratch/
+
+# Local credentials & sensitive tokens
+.env
+.env.*
+*.pem
+*.key
+
+# Build & Distribution Artifacts
+build/
+dist/
+*.egg-info/
+node_modules/
+.npmrc
