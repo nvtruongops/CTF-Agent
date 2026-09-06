@@ -98,7 +98,8 @@ def deploy_to_workspace(
     setup_workspace: bool = True,
     install_wsl: bool = True,
     wsl_profile: str = "core",
-    wsl_distro: str = "kali-linux"
+    wsl_distro: str = "kali-linux",
+    agent_only: bool = False,
 ):
     """Deploy CTF-Agent into target directory under .agents/, configure workspace files, and provision WSL toolchain."""
     dot_agents = target_path / ".agents"
@@ -171,7 +172,7 @@ def deploy_to_workspace(
             shutil.copy2(src_file, dest_file)
             print(f"  [+] Copied {file_name} -> {dest_file}")
 
-    if setup_workspace:
+    if setup_workspace and not agent_only:
         print(f"\n[*] Configuring workspace root settings at {target_path}...")
         for file_name in WORKSPACE_ROOT_FILES:
             src_file = find_asset_file(file_name)
@@ -216,6 +217,28 @@ def deploy_to_workspace(
             print(f"  [+] Generated {skills_lock_file}")
 
         # Provision CTF toolchain into WSL
+        if install_wsl and os.name == 'nt':
+            install_wsl_toolchain(target_path, profile=wsl_profile, distro=wsl_distro)
+    elif agent_only:
+        # Isolated agent-only mode: generate skills-lock inside .agents/ and skip root file modifications
+        skills_lock = {"version": 1, "skills": {}}
+        skills_dir = dot_agents / "skills"
+        if skills_dir.exists():
+            for skill_path in sorted(skills_dir.iterdir()):
+                if skill_path.is_dir():
+                    skill_md = skill_path / "SKILL.md"
+                    if skill_md.exists():
+                        h = hashlib.sha256(skill_md.read_bytes()).hexdigest()
+                        skills_lock["skills"][skill_path.name] = {
+                            "source": "CTF-Agent (local)",
+                            "sourceType": "local",
+                            "skillPath": f".agents/skills/{skill_path.name}/SKILL.md",
+                            "computedHash": h
+                        }
+            skills_lock_file = dot_agents / "skills-lock.json"
+            skills_lock_file.write_text(json.dumps(skills_lock, indent=2), encoding="utf-8")
+            print(f"  [+] Generated {skills_lock_file} (agent-only isolated)")
+
         if install_wsl and os.name == 'nt':
             install_wsl_toolchain(target_path, profile=wsl_profile, distro=wsl_distro)
 
@@ -284,7 +307,7 @@ def main():
     parser.add_argument("--global", dest="is_global", action="store_true", help="Install CTF skills, rules, and subagents globally into ~/.gemini/config/")
     parser.add_argument("--symlink", "--link", action="store_true", help="Use symlinks/junctions for workspace deployment to keep live sync")
     parser.add_argument("--setup-workspace", dest="setup_workspace", action="store_true", default=True, help="Configure workspace root AGENTS.md, mcp_config.json, skills.json (default: True)")
-    parser.add_argument("--no-setup-workspace", dest="setup_workspace", action="store_false", help="Only deploy .agents/ without modifying workspace root files")
+    parser.add_argument("--no-setup-workspace", "--agent-only", dest="agent_only", action="store_true", help="Only deploy .agents/ without modifying workspace root files")
     parser.add_argument("--wsl", dest="install_wsl", action="store_true", default=True, help="Automatically install CTF toolchain into WSL during setup (default: True)")
     parser.add_argument("--no-wsl", "--skip-toolchain", dest="install_wsl", action="store_false", help="Skip toolchain installation into backend")
     parser.add_argument("--wsl-profile", default="core", help="WSL toolchain profile to install: core, pwn, rev, crypto, forensics, web, all (default: core)")
@@ -310,10 +333,11 @@ def main():
             target_dir,
             use_symlink=args.symlink,
             force=args.force,
-            setup_workspace=args.setup_workspace,
+            setup_workspace=(args.setup_workspace and not args.agent_only),
             install_wsl=args.install_wsl,
             wsl_profile=args.wsl_profile,
-            wsl_distro=args.wsl_distro
+            wsl_distro=args.wsl_distro,
+            agent_only=args.agent_only,
         )
     else:
         parser.print_help()

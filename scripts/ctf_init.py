@@ -320,6 +320,14 @@ class EnvironmentDetector:
     def run_preflight(cls, workspace_path: Path) -> Dict[str, Any]:
         dot_agents = workspace_path / ".agents"
         dot_agent_legacy = workspace_path / ".agent"
+
+        existing_items: List[str] = []
+        if workspace_path.exists() and workspace_path.is_dir():
+            for item in workspace_path.iterdir():
+                if item.name in (".git", ".agents", ".agent", ".codegraph", ".gemini", ".idea", ".vscode"):
+                    continue
+                existing_items.append(item.name)
+
         return {
             "os": cls.detect_os(),
             "memory": cls.detect_memory(),
@@ -329,6 +337,8 @@ class EnvironmentDetector:
             "network": cls.detect_network(),
             "workspace_path": str(workspace_path.resolve()),
             "existing_agents": dot_agents.exists() or dot_agent_legacy.exists(),
+            "is_empty": len(existing_items) == 0,
+            "existing_items_count": len(existing_items),
         }
 
 
@@ -568,6 +578,8 @@ class WorkspaceProvisioner:
         use_symlink: bool = False,
         force: bool = False,
         skip_toolchain: bool = False,
+        agent_only: bool = False,
+        no_scaffold: bool = False,
     ) -> bool:
         print(f"\n[*] Initializing workspace at: {workspace_path.resolve()}")
 
@@ -577,20 +589,24 @@ class WorkspaceProvisioner:
                 workspace_path,
                 use_symlink=use_symlink,
                 force=force,
-                setup_workspace=True,
+                setup_workspace=not agent_only,
                 install_wsl=(backend == "wsl" and not skip_toolchain),
                 wsl_profile=profiles,
                 wsl_distro=distro,
+                agent_only=agent_only,
             )
         else:
             print("[!] Error: install_as_agent module unavailable")
             return False
 
-        # 2. Setup standard challenge templates
-        cls.setup_templates(workspace_path)
+        # 2. Setup standard challenge templates (skipped in agent-only or no-scaffold mode)
+        if not agent_only and not no_scaffold:
+            cls.setup_templates(workspace_path)
+        else:
+            print("  [*] Challenge scaffolding skipped (preserving existing project structure).")
 
         # 3. Handle Docker backend guidance if selected
-        if backend == "docker" and not skip_toolchain:
+        if backend == "docker" and not skip_toolchain and not agent_only:
             cls.provision_docker(workspace_path, profiles)
 
         return True
@@ -669,10 +685,11 @@ class HealthCheckRunner:
     """Verifies workspace file integrity, agent components, and backend availability."""
 
     @staticmethod
-    def check_workspace(workspace_path: Path, backend: str, distro: str) -> Dict[str, Any]:
+    def check_workspace(workspace_path: Path, backend: str, distro: str, agent_only: bool = False) -> Dict[str, Any]:
         results: Dict[str, Any] = {
             "workspace": str(workspace_path.resolve()),
             "backend": backend,
+            "agent_only": agent_only,
             "checks": [],
             "all_passed": True,
         }
@@ -689,11 +706,18 @@ class HealthCheckRunner:
         dot_agents = workspace_path / ".agents"
         record("dot_agents_directory", dot_agents.is_dir(), f"Checked {dot_agents}")
 
-        agents_md = workspace_path / "AGENTS.md"
-        record("workspace_agents_md", agents_md.is_file(), f"Checked {agents_md}")
+        if agent_only:
+            agents_md = dot_agents / "AGENTS.md"
+            record("agent_agents_md", agents_md.is_file(), f"Checked {agents_md}")
 
-        skills_lock = workspace_path / "skills-lock.json"
-        record("skills_lock_file", skills_lock.is_file(), f"Checked {skills_lock}")
+            skills_lock = dot_agents / "skills-lock.json"
+            record("skills_lock_file", skills_lock.is_file(), f"Checked {skills_lock}")
+        else:
+            agents_md = workspace_path / "AGENTS.md"
+            record("workspace_agents_md", agents_md.is_file(), f"Checked {agents_md}")
+
+            skills_lock = workspace_path / "skills-lock.json"
+            record("skills_lock_file", skills_lock.is_file(), f"Checked {skills_lock}")
 
         controller_md = dot_agents / "agents" / "ctf-controller.md"
         record("agent_ctf_controller", controller_md.is_file(), f"Checked {controller_md}")
@@ -747,7 +771,12 @@ def print_banner(env: Dict[str, Any], scoring: Dict[str, Any]):
     print(f"Platform : {os_info['system']} {os_info['release']} ({os_info['arch']})")
     print(f"Hardware : {os_info['cpu_cores']} CPU cores | {mem_info['total_gb']} GB RAM")
     print(f"Storage  : {disk_info['free_gb']} GB Free / {disk_info['total_gb']} GB Total")
-    ws_status = "Existing .agents/ configuration found" if env.get("existing_agents", False) else "Fresh directory (clean)"
+    if env.get("existing_agents", False):
+        ws_status = "Existing .agents/ configuration found"
+    elif not env.get("is_empty", True):
+        ws_status = f"Existing project detected ({env.get('existing_items_count', 0)} items, auto-preserving structure)"
+    else:
+        ws_status = "Fresh directory (clean)"
     print(f"Workspace: {ws_status}")
     print("-----------------------------------------------------------------")
     print("Detected Backends:")
@@ -848,6 +877,21 @@ def main():
         help="Deploy agent workspace without executing backend toolchain installations",
     )
     parser.add_argument(
+        "--agent-only",
+        action="store_true",
+        help="Deploy only the .agents/ brain directory without creating any root files, root scaffolding, or root scripts",
+    )
+    parser.add_argument(
+        "--no-scaffold",
+        action="store_true",
+        help="Skip creating challenge scaffolding files (resources/, notes/, solve.py, .env.example)",
+    )
+    parser.add_argument(
+        "--scaffold",
+        action="store_true",
+        help="Force creation of challenge scaffolding files even if the target directory already contains existing files",
+    )
+    parser.add_argument(
         "--dry-run",
         action="store_true",
         help="Perform preflight checks and output recommendation without modifying workspace",
@@ -870,11 +914,31 @@ def main():
     env = EnvironmentDetector.run_preflight(ws_path)
     scoring = CapabilityScoringEngine.calculate_scores(env, workload=args.purpose)
 
+    # Resolve agent_only and scaffolding modes
+    chosen_agent_only = args.agent_only
+    if chosen_agent_only:
+        chosen_no_scaffold = True
+    elif args.no_scaffold:
+        chosen_no_scaffold = True
+    elif args.scaffold:
+        chosen_no_scaffold = False
+    else:
+        # Smart detection: if workspace already contains existing files/directories, auto-skip scaffolding
+        if not env.get("is_empty", True):
+            chosen_no_scaffold = True
+        else:
+            chosen_no_scaffold = False
+
     # Health check only mode
     if args.check_only:
         backend_target = args.backend or scoring["recommended"]
         distro_target = args.distro or scoring["distro_target"] or "kali-linux"
-        report = HealthCheckRunner.check_workspace(ws_path, backend_target, distro_target)
+        report = HealthCheckRunner.check_workspace(
+            ws_path,
+            backend_target,
+            distro_target,
+            agent_only=chosen_agent_only,
+        )
         if args.json:
             print(json.dumps(report, indent=2))
         else:
@@ -889,6 +953,8 @@ def main():
             "purpose_profiles": PURPOSE_PROFILES,
             "selected_purpose": args.purpose,
             "selected_profiles": args.profile or PURPOSE_PROFILES[args.purpose]["profiles"],
+            "agent_only": chosen_agent_only,
+            "no_scaffold": chosen_no_scaffold,
         }
         print(json.dumps(payload, indent=2))
         sys.exit(0)
@@ -909,6 +975,10 @@ def main():
         print(f"    Workload Purpose : {args.purpose} ({PURPOSE_PROFILES[args.purpose]['title']})")
         print(f"    Tool Profiles    : {selected_prof}")
         print(f"    Skip Toolchain   : {args.skip_toolchain}")
+        print(f"    Agent Only       : {chosen_agent_only}")
+        print(f"    Skip Scaffolding : {chosen_no_scaffold}")
+        if not env.get("is_empty", True) and not args.scaffold and not chosen_agent_only:
+            print(f"    Project Status   : Existing project layout preserved (auto-detected {env.get('existing_items_count', 0)} items)")
         if args.auto or not sys.stdin.isatty():
             mode_desc = "Automated flag (--auto)" if args.auto else "Non-interactive environment (headless/non-TTY)"
             print(f"    Execution Mode   : {mode_desc}")
@@ -972,6 +1042,12 @@ def main():
         print(f"    Auto-selected backend    : {chosen_backend.upper()} ({chosen_distro})")
         print(f"    Workload purpose         : {chosen_purpose} ({PURPOSE_PROFILES[chosen_purpose]['title']})")
         print(f"    Toolchain installation   : {'DISABLED' if chosen_skip_toolchain else 'ENABLED (' + chosen_profiles + ')'}")
+        if chosen_agent_only:
+            print("    Deployment Mode          : AGENT-ONLY (.agents/ brain only, zero root scaffolding)")
+        elif chosen_no_scaffold:
+            print("    Scaffolding              : SKIPPED (existing project layout preserved)")
+        else:
+            print("    Scaffolding              : STANDARD (resources/, notes/, solve.py, .env.example)")
 
     # Check for existing workspace directory (.agents or legacy .agent)
     dot_agents = ws_path / ".agents"
@@ -1011,6 +1087,8 @@ def main():
         use_symlink=args.symlink,
         force=effective_force,
         skip_toolchain=chosen_skip_toolchain,
+        agent_only=chosen_agent_only,
+        no_scaffold=chosen_no_scaffold,
     )
 
     if not success:
@@ -1018,7 +1096,12 @@ def main():
         sys.exit(1)
 
     # Post-provision Health Check
-    health_report = HealthCheckRunner.check_workspace(ws_path, chosen_backend, chosen_distro)
+    health_report = HealthCheckRunner.check_workspace(
+        ws_path,
+        chosen_backend,
+        chosen_distro,
+        agent_only=chosen_agent_only,
+    )
     print_health_report(health_report)
 
 

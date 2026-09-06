@@ -13,6 +13,7 @@ from ctf_init import (
     CapabilityScoringEngine,
     PURPOSE_PROFILES,
     HealthCheckRunner,
+    WorkspaceProvisioner,
 )
 
 
@@ -245,5 +246,102 @@ def test_non_interactive_output_notice():
     )
     assert res.returncode == 0
     assert "Automated flag (--auto)" in res.stdout or "Non-interactive" in res.stdout
+
+
+def test_existing_project_detection_preflight(tmp_path):
+    # Empty directory
+    pre1 = EnvironmentDetector.run_preflight(tmp_path)
+    assert pre1["is_empty"] is True
+    assert pre1["existing_items_count"] == 0
+
+    # Directory with metadata only
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".codegraph").mkdir()
+    pre2 = EnvironmentDetector.run_preflight(tmp_path)
+    assert pre2["is_empty"] is True
+    assert pre2["existing_items_count"] == 0
+
+    # Directory with actual project files (e.g. flagyard-labs style)
+    (tmp_path / "Web").mkdir()
+    (tmp_path / "README.md").write_text("# My Labs", encoding="utf-8")
+    pre3 = EnvironmentDetector.run_preflight(tmp_path)
+    assert pre3["is_empty"] is False
+    assert pre3["existing_items_count"] == 2
+
+
+def test_provision_agent_only_clean_root(tmp_path):
+    # Provision with agent_only=True
+    success = WorkspaceProvisioner.provision(
+        workspace_path=tmp_path,
+        backend="none",
+        distro="kali-linux",
+        profiles="core",
+        skip_toolchain=True,
+        agent_only=True,
+    )
+    assert success is True
+
+    # .agents directory exists
+    dot_agents = tmp_path / ".agents"
+    assert dot_agents.is_dir()
+    assert (dot_agents / "AGENTS.md").is_file()
+    assert (dot_agents / "skills-lock.json").is_file()
+    assert (dot_agents / "agents" / "ctf-controller.md").is_file()
+
+    # Workspace root has ZERO added files
+    assert not (tmp_path / "AGENTS.md").exists()
+    assert not (tmp_path / "skills-lock.json").exists()
+    assert not (tmp_path / "mcp_config.json").exists()
+    assert not (tmp_path / "resources").exists()
+    assert not (tmp_path / "notes").exists()
+    assert not (tmp_path / "solve.py").exists()
+    assert not (tmp_path / ".env.example").exists()
+
+    # Health check in agent_only mode passes
+    check_res = HealthCheckRunner.check_workspace(tmp_path, "none", "kali-linux", agent_only=True)
+    assert check_res["all_passed"] is True
+
+
+def test_provision_no_scaffold(tmp_path):
+    # Provision with no_scaffold=True (agent_only=False)
+    success = WorkspaceProvisioner.provision(
+        workspace_path=tmp_path,
+        backend="none",
+        distro="kali-linux",
+        profiles="core",
+        skip_toolchain=True,
+        agent_only=False,
+        no_scaffold=True,
+    )
+    assert success is True
+
+    # Root config exists for IDE
+    assert (tmp_path / "AGENTS.md").is_file()
+    assert (tmp_path / "skills-lock.json").is_file()
+    assert (tmp_path / "mcp_config.json").is_file()
+
+    # Scaffolding does NOT exist
+    assert not (tmp_path / "resources").exists()
+    assert not (tmp_path / "notes").exists()
+    assert not (tmp_path / "solve.py").exists()
+    assert not (tmp_path / ".env.example").exists()
+
+
+def test_cli_dry_run_auto_detects_existing_project(tmp_path):
+    # Simulate existing project like flagyard-labs
+    (tmp_path / "Crypto").mkdir()
+    (tmp_path / "custom_tool.py").write_text("# tool", encoding="utf-8")
+
+    cli_path = REPO_ROOT / "ctf_agent_cli.py"
+    res = subprocess.run(
+        [sys.executable, str(cli_path), "init", str(tmp_path), "--dry-run"],
+        capture_output=True,
+        text=True,
+        check=False,
+        timeout=10,
+    )
+    assert res.returncode == 0
+    assert "Skip Scaffolding : True" in res.stdout
+    assert "Existing project layout preserved" in res.stdout
 
 
