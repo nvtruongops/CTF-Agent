@@ -102,14 +102,13 @@
     "web": {
       "description": "Tier 2: Modern web exploitation, fuzzers, JWT, HTTP/2/3, and crawler pipelines",
       "apt": [
-        "sqlmap", "nikto"
+        "sqlmap", "nikto", "mitmproxy"
       ],
       "pip": {
         "requests": {"version": "2.32.5", "import": "requests"},
         "pyjwt": {"version": "2.10.1", "import": "jwt"},
         "flask-unsign": {"version": "1.2.1", "import": "flask_unsign"},
         "httpx": {"version": "0.28.1", "import": "httpx"},
-        "mitmproxy": {"version": "11.1.3", "import": "mitmproxy"},
         "playwright": {"version": "1.50.0", "import": "playwright"}
       },
       "go": [
@@ -195,7 +194,7 @@
       "description": "Tier 2: Machine learning security, adversarial models, and safetensors analysis",
       "pip": {
         "safetensors": {"version": "0.5.3", "import": "safetensors"},
-        "torch": {"version": "2.6.0", "import": "torch"},
+        "torch": {"version": "2.14.0+cpu", "import": "torch"},
         "transformers": {"version": "4.49.0", "import": "transformers"},
         "numpy": {"version": "2.2.6", "import": "numpy"},
         "matplotlib": {"version": "3.10.8", "import": "matplotlib"}

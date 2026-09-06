@@ -51,6 +51,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libmpc-dev \
     libssl-dev \
     libffi-dev \
+    libjpeg-dev \
+    zlib1g-dev \
+    libpng-dev \
+    libfreetype6-dev \
     # Compilers & Runtimes
     ruby \
     ruby-dev \
@@ -101,6 +105,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     # Web Exploitation
     sqlmap \
     nikto \
+    mitmproxy \
     # Mobile
     adb \
     apktool \
@@ -164,7 +169,6 @@ RUN python3 -m venv --system-site-packages /root/.ctf-tools/venv && \
     pyjwt==2.10.1 \
     flask-unsign==1.2.1 \
     httpx==0.28.1 \
-    mitmproxy==11.1.3 \
     playwright==1.50.0 \
     # Mobile
     objection==1.11.0 \
@@ -178,7 +182,7 @@ RUN python3 -m venv --system-site-packages /root/.ctf-tools/venv && \
     solc-select==1.2.0 \
     # AI & ML Security
     safetensors==0.5.3 && \
-    /root/.ctf-tools/venv/bin/pip install --no-cache-dir --index-url https://download.pytorch.org/whl/cpu torch==2.6.0 && \
+    /root/.ctf-tools/venv/bin/pip install --no-cache-dir --index-url https://download.pytorch.org/whl/cpu torch==2.14.0+cpu && \
     /root/.ctf-tools/venv/bin/pip install --no-cache-dir transformers==4.49.0
 
 WORKDIR /workspace
