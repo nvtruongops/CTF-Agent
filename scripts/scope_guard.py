@@ -28,17 +28,18 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 # Allowed CTF and educational domain patterns
 ALLOWED_DOMAIN_PATTERNS = [
     r"^localhost$",
-    r".*\.local$",
-    r".*\.internal$",
-    r".*\.test$",
-    r".*\.ctf$",
-    r".*\.chals\.io$",
-    r".*\.picoctf\.net$",
-    r".*\.hackthebox\.com$",
-    r".*\.tryhackme\.com$",
-    r".*\.flagyard\.com$",
-    r".*\.ctf\.site$",
-    r".*\.sandia\.gov$",
+    r"^(?:.*\.)?local$",
+    r"^(?:.*\.)?internal$",
+    r"^(?:.*\.)?test$",
+    r"^(?:.*\.)?ctf$",
+    r"^(?:.*\.)?chal{1,2}s?\.io$",
+    r"^(?:.*\.)?picoctf\.net$",
+    r"^(?:.*\.)?hackthebox\.(?:com|eu)$",
+    r"^(?:.*\.)?tryhackme\.com$",
+    r"^(?:.*\.)?flagyard\.com$",
+    r"^(?:.*\.)?ctfd\.io$",
+    r"^(?:.*\.)?ctf\.site$",
+    r"^(?:.*\.)?sandia\.gov$",
 ]
 
 # Strictly prohibited command signatures

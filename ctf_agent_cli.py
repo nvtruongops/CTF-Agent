@@ -60,6 +60,14 @@ def main():
         sys.argv = [sys.argv[0]] + args[1:]
         guard = _load_entrypoint("scope_guard", "scope_guard.py")
         guard()
+    elif args and args[0] in ("clean", "clean-workspace", "sanitize"):
+        sys.argv = [sys.argv[0]] + args[1:]
+        cleaner = _load_entrypoint("workspace_cleaner", "workspace_cleaner.py")
+        cleaner()
+    elif args and args[0] in ("cve", "cve-lookup"):
+        sys.argv = [sys.argv[0]] + args[1:]
+        cve_util = _load_entrypoint("cve_lookup", "cve_lookup.py")
+        cve_util()
     elif args and args[0] == "init":
         sys.argv = [sys.argv[0]] + args[1:]
         initializer = _load_entrypoint("ctf_init", "ctf_init.py")

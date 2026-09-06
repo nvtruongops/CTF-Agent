@@ -332,16 +332,14 @@ class WorkspaceUpdater:
                 src_skill = upstream_skills_dir / diff.name
                 if not dry_run:
                     # Backup local modified SKILL.md before overwrite
-                    backup_file = dest_skill / "SKILL.md.bak"
                     local_md = dest_skill / "SKILL.md"
-                    if local_md.exists():
-                        shutil.copy2(local_md, backup_file)
+                    local_bytes = local_md.read_bytes() if local_md.exists() else None
                     if dest_skill.exists():
                         shutil.rmtree(dest_skill)
                     shutil.copytree(src_skill, dest_skill)
                     # Re-place backup for user inspection
-                    if backup_file.exists():
-                        shutil.copy2(backup_file, dest_skill / "SKILL.md.bak")
+                    if local_bytes is not None:
+                        (dest_skill / "SKILL.md.bak").write_bytes(local_bytes)
                 action_str = f"{'Would update' if dry_run else 'Updated'} modified skill with backup: {diff.name}{' (saved SKILL.md.bak)' if not dry_run else ''}"
                 action_sink.append(action_str)
 

@@ -81,6 +81,12 @@ function main() {
   } else if (args.length > 0 && (args[0] === 'scope-guard' || args[0] === 'guard')) {
     scriptFile = 'scope_guard.py';
     forwardArgs = args.slice(1);
+  } else if (args.length > 0 && (args[0] === 'clean' || args[0] === 'clean-workspace' || args[0] === 'sanitize')) {
+    scriptFile = 'workspace_cleaner.py';
+    forwardArgs = args.slice(1);
+  } else if (args.length > 0 && (args[0] === 'cve' || args[0] === 'cve-lookup')) {
+    scriptFile = 'cve_lookup.py';
+    forwardArgs = args.slice(1);
   } else if (args.length > 0 && args[0] === 'init') {
     scriptFile = 'ctf_init.py';
     forwardArgs = args.slice(1);
