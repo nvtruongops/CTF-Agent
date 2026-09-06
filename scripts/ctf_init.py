@@ -340,7 +340,7 @@ class CapabilityScoringEngine:
     """Calculates weighted scores for WSL vs Docker execution backends."""
 
     @staticmethod
-    def calculate_scores(env: Dict[str, Any]) -> Dict[str, Any]:
+    def calculate_scores(env: Dict[str, Any], workload: str = "live-ctf") -> Dict[str, Any]:
         os_info = env["os"]
         wsl_info = env["wsl"]
         docker_info = env["docker"]
@@ -434,6 +434,29 @@ class CapabilityScoringEngine:
         else:
             docker_reasons.append("Docker CLI not installed (0)")
 
+        # Workload-Aware Capability Scoring adjustments
+        if workload == "rev-pwn":
+            if os_info["is_windows"] and wsl_info["available"]:
+                wsl_score += 2
+                wsl_reasons.append("Workload 'rev-pwn': native ELF debugging & GDB kernel syscalls (+2)")
+            elif os_info["is_linux"]:
+                docker_score += 1
+                docker_reasons.append("Workload 'rev-pwn': native Linux execution (+1)")
+        elif workload == "security-lab":
+            if docker_info["daemon_running"]:
+                docker_score += 2
+                docker_reasons.append("Workload 'security-lab': Docker containment sandbox for research (+2)")
+        elif workload == "live-ctf":
+            if wsl_info["available"] and wsl_info["kali_running"]:
+                wsl_score += 1
+                wsl_reasons.append("Workload 'live-ctf': Zero spin-up latency with active Kali instance (+1)")
+        elif workload == "full":
+            if free_disk < 30.0:
+                wsl_score -= 1
+                docker_score -= 1
+                wsl_reasons.append(f"Workload 'full': high storage footprint ({free_disk} GB free) (-1)")
+                docker_reasons.append(f"Workload 'full': high storage footprint ({free_disk} GB free) (-1)")
+
         # Decision synthesis
         if os_info["is_windows"]:
             if wsl_score >= docker_score and wsl_info["available"]:
@@ -481,6 +504,7 @@ class CapabilityScoringEngine:
             "reason": reason,
             "wsl_factors": wsl_reasons,
             "docker_factors": docker_reasons,
+            "workload": workload,
         }
 
 
@@ -571,17 +595,70 @@ class WorkspaceProvisioner:
 
         return True
 
-    @staticmethod
-    def provision_docker(workspace_path: Path, profiles: str):
+    @classmethod
+    def provision_docker(cls, workspace_path: Path, profiles: str, dry_run: bool = False):
         print(f"\n[*] Provisioning Docker backend for workspace...")
         compose_file = REPO_ROOT / "docker-compose.yml"
-        if compose_file.exists():
-            target_compose = workspace_path / "docker-compose.yml"
-            if not target_compose.exists():
-                shutil.copy2(compose_file, target_compose)
-                print(f"  [+] Copied docker-compose.yml -> {target_compose}")
-            print("  [*] To start the Docker CTF container:")
-            print(f"      docker compose -f '{target_compose}' up -d")
+        dockerfile = REPO_ROOT / "Dockerfile"
+        target_compose = workspace_path / "docker-compose.yml"
+
+        if compose_file.exists() and not target_compose.exists():
+            shutil.copy2(compose_file, target_compose)
+            print(f"  [+] Copied docker-compose.yml -> {target_compose}")
+
+        if dockerfile.exists() and not (workspace_path / "Dockerfile").exists():
+            shutil.copy2(dockerfile, workspace_path / "Dockerfile")
+            print(f"  [+] Copied Dockerfile -> {workspace_path / 'Dockerfile'}")
+
+        if dry_run:
+            print("  [*] Dry-run enabled: skipping container execution.")
+            return
+
+        docker_bin = shutil.which("docker")
+        if not docker_bin:
+            print("  [!] Docker CLI not detected on system PATH.")
+            return
+
+        # 1. Validate compose configuration
+        try:
+            res_cfg = subprocess.run(
+                [docker_bin, "compose", "-f", str(target_compose), "config"],
+                capture_output=True,
+                text=True,
+                check=False,
+                timeout=6,
+            )
+            if res_cfg.returncode == 0:
+                print("  [+] Validated docker compose configuration syntax")
+            else:
+                print(f"  [!] Compose config warning: {res_cfg.stderr.strip()[:120]}")
+        except Exception:
+            pass
+
+        # 2. Check docker daemon and test container readiness
+        try:
+            res_info = subprocess.run(
+                [docker_bin, "info"],
+                capture_output=True,
+                check=False,
+                timeout=4,
+            )
+            if res_info.returncode == 0:
+                print("  [*] Docker daemon is active. Verifying container readiness...")
+                test_cmd = [
+                    docker_bin, "compose", "-f", str(target_compose),
+                    "run", "--rm", "ctf-agent", "python3", "--version"
+                ]
+                test_run = subprocess.run(test_cmd, capture_output=True, text=True, check=False, timeout=12)
+                if test_run.returncode == 0:
+                    print(f"  [OK] Docker CTF container ready: {test_run.stdout.strip()}")
+                else:
+                    print("  [*] Container image not yet built. To build:")
+                    print(f"      docker compose -f '{target_compose}' build")
+            else:
+                print("  [!] Docker daemon is not running. Please start Docker to activate container sandbox.")
+        except Exception as e:
+            print(f"  [!] Docker readiness check skipped: {e}")
 
 
 # ---------------------------------------------------------------------------
@@ -791,7 +868,7 @@ def main():
 
     # Preflight Detection
     env = EnvironmentDetector.run_preflight(ws_path)
-    scoring = CapabilityScoringEngine.calculate_scores(env)
+    scoring = CapabilityScoringEngine.calculate_scores(env, workload=args.purpose)
 
     # Health check only mode
     if args.check_only:
@@ -832,6 +909,9 @@ def main():
         print(f"    Workload Purpose : {args.purpose} ({PURPOSE_PROFILES[args.purpose]['title']})")
         print(f"    Tool Profiles    : {selected_prof}")
         print(f"    Skip Toolchain   : {args.skip_toolchain}")
+        if args.auto or not sys.stdin.isatty():
+            mode_desc = "Automated flag (--auto)" if args.auto else "Non-interactive environment (headless/non-TTY)"
+            print(f"    Execution Mode   : {mode_desc}")
         print("\n[OK] Preflight checks passed without modifications.")
         sys.exit(0)
 
@@ -886,6 +966,12 @@ def main():
             elif choice == "5":
                 print("[*] Exiting without changes.")
                 sys.exit(0)
+    else:
+        env_mode = "Automated flag (--auto)" if args.auto else "Non-interactive environment detected (headless/non-TTY)"
+        print(f"\n[*] {env_mode}.")
+        print(f"    Auto-selected backend    : {chosen_backend.upper()} ({chosen_distro})")
+        print(f"    Workload purpose         : {chosen_purpose} ({PURPOSE_PROFILES[chosen_purpose]['title']})")
+        print(f"    Toolchain installation   : {'DISABLED' if chosen_skip_toolchain else 'ENABLED (' + chosen_profiles + ')'}")
 
     # Check for existing workspace directory (.agents or legacy .agent)
     dot_agents = ws_path / ".agents"

@@ -9,6 +9,8 @@ import sys
 import importlib.util
 from pathlib import Path
 
+__version__ = "1.1.0"
+
 REPO_ROOT = Path(__file__).resolve().parent
 SCRIPTS_DIR = REPO_ROOT / "scripts"
 if str(SCRIPTS_DIR) not in sys.path:
@@ -37,6 +39,11 @@ def _load_entrypoint(module_name: str, file_name: str):
 def main():
     """Main CLI dispatcher routing subcommands."""
     args = sys.argv[1:]
+
+    if args and args[0] in ("-v", "--version", "version"):
+        print(f"ctf-agent v{__version__}")
+        sys.exit(0)
+
     if args and args[0] == "update":
         sys.argv = [sys.argv[0]] + args[1:]
         updater = _load_entrypoint("ctf_update", "ctf_update.py")

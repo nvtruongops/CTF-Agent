@@ -10,7 +10,9 @@
 - [CRITICAL: Environment Backend Selection (WSL vs Docker)](#critical-environment-backend-selection-wsl-vs-docker)
 - [Operational Modes: Blitz vs Deep Analysis](#operational-modes-blitz-vs-deep-analysis)
 - [LLM Safety Guardrails & Policy Compliance](#llm-safety-guardrails--policy-compliance)
+- [Machine-Enforced Scope Guard](#machine-enforced-scope-guard-runtime-execution-boundary)
 - [Specialized Category Skills](#specialized-category-skills)
+- [Parallel Triage & High-Speed Reconnaissance](#parallel-triage--high-speed-reconnaissance-p0-engine)
 - [Quick Start & Workspace Installation](#quick-start--workspace-installation)
 - [References & Deep Knowledge Base](#references--deep-knowledge-base)
 - [Constitution & Architectural Governance](#constitution--architectural-governance)
@@ -179,6 +181,31 @@ python scripts/prompt_policy_sanitizer.py --file path/to/prompt.txt --check
 
 For comprehensive guidelines and full replacement dictionaries, see [ctf-safety-framing-rules.md](rules/ctf-safety-framing-rules.md) and [llm-safety-and-policy-compliance.md](references/llm-safety-and-policy-compliance.md).
 
+### 3. Machine-Enforced Scope Guard (Runtime Execution Boundary)
+
+While the Prompt Policy Sanitizer protects prompts from semantic upstream LLM filter rejections, the **Scope Guard** ([scripts/scope_guard.py](scripts/scope_guard.py)) converts the Security Context Object (SCO) and Task Envelope into an active, machine-enforced runtime execution fence.
+
+- **Network Boundary Validation**: Only authorized CTF targets are permitted:
+  - Local loopback: `127.0.0.1`, `localhost`, `::1`
+  - RFC1918 private subnets: `10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`
+  - Authorized CTF domains & competition platforms: `*.challs.io`, `*.picoctf.net`, `*.ctfd.io`, `*.tryhackme.com`, `*.hackthebox.com`, `*.flagyard.com`, and localhost ports.
+  - Arbitrary external IP addresses and unauthorized internet endpoints are rejected with explicit policy violations.
+- **Prohibited Action Guard**: Automatically intercepts and blocks commands containing:
+  - Destructive disk actions (`rm -rf /`, `mkfs`, `dd if=/dev/zero`)
+  - Backdoor persistence mechanisms (`crontab`, systemd services, SSH key installation in `~/.ssh/authorized_keys`, root password modification)
+  - Wide automated network sweeps (`nmap -iR`, masscan against external CIDR blocks)
+- **Runtime Execution**:
+  ```bash
+  # Validate a target endpoint before probing:
+  python scripts/scope_guard.py http://127.0.0.1:8080
+
+  # Validate a diagnostic CLI command before running:
+  python scripts/scope_guard.py --command "checksec --file=chall"
+
+  # Generate a formal Security Context Object (SCO):
+  python scripts/scope_guard.py --target http://chall.ctf.site:9000 --json
+  ```
+
 ---
 
 ## Specialized Category Skills
@@ -198,6 +225,49 @@ For comprehensive guidelines and full replacement dictionaries, see [ctf-safety-
 | [`ctf-misc`](skills/ctf-misc/SKILL.md) | **Miscellaneous & Jails** | PyJails, bash jails, esoteric encodings, RF/SDR signals, game reversing. |
 | [`ctf-malware`](skills/ctf-malware/SKILL.md) | **Malware Analysis** | C2 protocol decoding, PE/.NET unpackers, obfuscated script analysis. |
 | [`ctf-writeup`](skills/ctf-writeup/SKILL.md) | **Write-up Generator** | Standardized 5-section submission writeup and directory organizer. |
+
+---
+
+## Parallel Triage & High-Speed Reconnaissance (P0 Engine)
+
+To maximize Time-to-Flag during live CTF competitions, `CTF-Agent` integrates a high-speed parallel reconnaissance scheduler ([scripts/parallel_triage.py](scripts/parallel_triage.py)) that executes Tier 1 and Tier 2 diagnostics concurrently:
+
+```
+                               ┌────────────────────────────────┐
+                               │   Target Challenge Diagnostic  │
+                               └───────────────┬────────────────┘
+                                               │
+               ┌───────────────────────────────┴───────────────────────────────┐
+               ▼                                                               ▼
+     [Binary / ELF Target]                                           [Web / HTTP Target]
+  ThreadPoolExecutor Concurrency                                  ThreadPoolExecutor Concurrency
+  - Pure-Python ELF Parser (Arch, Endian, NX, PIE)               - HTTP Server & Powered-By Headers
+  - checksec security mitigations                                - /robots.txt & /sitemap.xml leaks
+  - strings pattern match (flags, /bin/sh, libc)                 - Sensitive paths (.git/HEAD, .env)
+  - readelf / symbol table analysis                              - Flag regex candidate pre-scan
+               │                                                               │
+               └───────────────────────────────┬───────────────────────────────┘
+                                               ▼
+                               ┌────────────────────────────────┐
+                               │    Synthesized Triage Plan     │
+                               │   - Discovered Vulnerabilities │
+                               │   - Recommended Specialist     │
+                               │   - Immediate Exploit Vector   │
+                               └────────────────────────────────┘
+```
+
+- **Zero-Dependency Native ELF Parser**: Reads ELF binary headers using pure Python standard library (`struct`), extracting machine architecture, bitness, endianness, entry point, section counts, NX stack protection, and PIE position independence without requiring external tools.
+- **Concurrent Execution Modes**:
+  ```bash
+  # Concurrent triage of a binary challenge:
+  python scripts/parallel_triage.py ./chall.bin
+
+  # Concurrent triage of a web challenge:
+  python scripts/parallel_triage.py http://127.0.0.1:8080
+
+  # Machine-readable output for automated agent pipelines:
+  python scripts/parallel_triage.py ./chall.bin --json
+  ```
 
 ---
 
@@ -336,7 +406,8 @@ python scripts/ctf_update.py --global
 
 **Zero Data Loss Guarantees**:
 - **Conflict Guard**: Inspects SHA-256 hashes against `skills-lock.json`. If you made local modifications to a skill, it creates a safe backup (`SKILL.md.bak`) before updating.
-- **Custom Skills**: Any custom skills created inside `.agents/skills/` that are not part of upstream CTF-Agent are preserved completely untouched.
+- **Custom Skills & Non-Skill Directory Preservation**: Custom skills in `.agents/skills/`, custom subagents in `.agents/agents/`, custom rules in `.agents/rules/`, and custom scripts in `.agents/scripts/` that are not part of upstream CTF-Agent are preserved completely untouched without wholesale directory wipes.
+- **Automated Backups for Modified Support Files**: Any modified upstream files in `.agents/rules/`, `.agents/agents/`, `.agents/references/`, or `scripts/` receive `.bak` backup files prior to update.
 - **Challenge Assets Protected**: Exploit scripts (`solve.py`), challenge binaries (`resources/`), CTF notes (`notes/`), and credentials (`.env`) are never overwritten or deleted.
 
 ---
@@ -370,6 +441,12 @@ This workspace already has `.agents/` configured. You can start prompting direct
 
 Located in [scripts/](scripts/):
 
+- **`parallel_triage.py`**:
+  - `python3 scripts/parallel_triage.py <target-binary-or-url>`: Executes high-speed concurrent Tier 1 & 2 diagnostics (pure Python ELF parsing, checksec, strings, headers, robots.txt, sitemap.xml, sensitive leak probes) via ThreadPoolExecutor.
+  - `python3 scripts/parallel_triage.py <target> --json`: Emits machine-readable diagnostic synthesis with recommended specialist category skills.
+- **`scope_guard.py`**:
+  - `python3 scripts/scope_guard.py <target-or-command>`: Machine-enforces authorized testing boundaries (RFC1918 subnets, loopback, CTF platform domains) and blocks destructive commands or root persistence attempts.
+  - `python3 scripts/scope_guard.py --target <url> --json`: Generates a formal Security Context Object (SCO) for multi-agent dispatch.
 - **`prompt_policy_sanitizer.py`**:
   - `python3 scripts/prompt_policy_sanitizer.py "<prompt>" --lang [vi|en]`: Scans, scores policy risk, and sanitizes prompts with academic terminology and educational CTF preambles.
   - `python3 scripts/prompt_policy_sanitizer.py --file <path> --check`: Verifies that challenge writeups, prompts, or scripts do not trigger modern LLM backend filters.

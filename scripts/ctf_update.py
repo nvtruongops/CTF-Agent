@@ -207,6 +207,56 @@ class WorkspaceUpdater:
         return diffs
 
     @classmethod
+    def sync_directory_with_guard(
+        cls,
+        src_dir: Path,
+        dest_dir: Path,
+        label: str,
+        force: bool = False,
+    ) -> List[str]:
+        """
+        Surgically synchronizes a directory file-by-file with SHA-256 diffing.
+        - Installs new files from upstream
+        - Updates modified files while creating <file>.bak backups
+        - Preserves user custom files completely untouched
+        """
+        actions: List[str] = []
+        if not src_dir.exists():
+            return actions
+
+        dest_dir.mkdir(parents=True, exist_ok=True)
+        upstream_rel_paths = set()
+
+        # 1. Inspect upstream files
+        for src_file in src_dir.rglob("*"):
+            if src_file.is_file():
+                rel = src_file.relative_to(src_dir)
+                upstream_rel_paths.add(rel)
+                target_file = dest_dir / rel
+
+                if not target_file.exists():
+                    target_file.parent.mkdir(parents=True, exist_ok=True)
+                    shutil.copy2(src_file, target_file)
+                    actions.append(f"Installed new {label}: {rel}")
+                else:
+                    up_hash = cls.compute_file_hash(src_file)
+                    loc_hash = cls.compute_file_hash(target_file)
+                    if up_hash != loc_hash:
+                        bak_file = target_file.with_name(target_file.name + ".bak")
+                        shutil.copy2(target_file, bak_file)
+                        shutil.copy2(src_file, target_file)
+                        actions.append(f"Updated {label} with backup: {rel} (saved .bak)")
+
+        # 2. Inspect local directory for custom files
+        for loc_file in dest_dir.rglob("*"):
+            if loc_file.is_file():
+                rel = loc_file.relative_to(dest_dir)
+                if not str(rel).endswith(".bak") and rel not in upstream_rel_paths:
+                    actions.append(f"Preserved custom {label}: {rel}")
+
+        return actions
+
+    @classmethod
     def update_workspace(
         cls,
         workspace_path: Path,
@@ -289,21 +339,25 @@ class WorkspaceUpdater:
         # 2. Synchronize non-skill directories & files unless skills_only
         if not skills_only:
             for dir_name in ["rules", "agents", "references", "scripts"]:
-                src_dir = REPO_ROOT / dir_name
-                dest_dir = dot_agents / dir_name
-                if src_dir.exists():
-                    if dest_dir.exists():
-                        shutil.rmtree(dest_dir)
-                    shutil.copytree(src_dir, dest_dir)
-                    result["actions_taken"].append(f"Updated .agents/{dir_name}/")
+                src_d = REPO_ROOT / dir_name
+                dest_d = dot_agents / dir_name
+                dir_actions = cls.sync_directory_with_guard(src_d, dest_d, label=f".agents/{dir_name}", force=force)
+                result["actions_taken"].extend(dir_actions)
 
             # Essential files in .agents/
             for f_name in ESSENTIAL_FILES:
                 src_file = REPO_ROOT / f_name
                 dest_file = dot_agents / f_name
                 if src_file.exists():
-                    shutil.copy2(src_file, dest_file)
-                    result["actions_taken"].append(f"Updated .agents/{f_name}")
+                    up_h = cls.compute_file_hash(src_file)
+                    loc_h = cls.compute_file_hash(dest_file)
+                    if not dest_file.exists():
+                        shutil.copy2(src_file, dest_file)
+                        result["actions_taken"].append(f"Installed .agents/{f_name}")
+                    elif up_h != loc_h:
+                        shutil.copy2(dest_file, dest_file.with_name(f_name + ".bak"))
+                        shutil.copy2(src_file, dest_file)
+                        result["actions_taken"].append(f"Updated .agents/{f_name} (saved .bak)")
 
             # Workspace root files (AGENTS.md, mcp_config.json, skills.json)
             for f_name in WORKSPACE_ROOT_FILES:
@@ -323,10 +377,8 @@ class WorkspaceUpdater:
             ws_scripts = workspace_path / "scripts"
             if ws_scripts.is_dir():
                 src_scripts = REPO_ROOT / "scripts"
-                for s_file in src_scripts.iterdir():
-                    if s_file.is_file():
-                        shutil.copy2(s_file, ws_scripts / s_file.name)
-                result["actions_taken"].append("Synchronized workspace scripts/")
+                ws_actions = cls.sync_directory_with_guard(src_scripts, ws_scripts, label="scripts", force=force)
+                result["actions_taken"].extend(ws_actions)
 
         # 3. Regenerate skills-lock.json with updated SHA-256 hashes
         skills_lock: Dict[str, Any] = {"version": 1, "skills": {}}
