@@ -399,30 +399,33 @@ class WorkspaceUpdater:
                         action_sink.append(f"{'Would update' if dry_run else 'Updated'} .agents/{f_name}{' (saved .bak)' if not dry_run else ''}")
 
             # Workspace root files (AGENTS.md, mcp_config.json, skills.json)
-            for f_name in WORKSPACE_ROOT_FILES:
-                src_file = find_asset_file(f_name)
-                dest_file = workspace_path / f_name
-                if src_file and src_file.exists():
-                    if f_name == "AGENTS.md" and workspace_path != REPO_ROOT:
-                        content = src_file.read_text(encoding="utf-8")
-                        content = content.replace("](references/", "](.agents/references/")
-                        content = content.replace("](rules/", "](.agents/rules/")
-                        dest_content = dest_file.read_text(encoding="utf-8") if dest_file.exists() else None
-                        if dest_content != content:
-                            if not dry_run:
-                                dest_file.write_text(content, encoding="utf-8", newline="\n")
-                            action_sink.append(f"{'Would update' if dry_run else 'Updated'} workspace root: {f_name}")
-                    else:
-                        up_h = cls.compute_file_hash(src_file)
-                        loc_h = cls.compute_file_hash(dest_file)
-                        if up_h != loc_h:
-                            if not dry_run:
-                                shutil.copy2(src_file, dest_file)
-                            action_sink.append(f"{'Would update' if dry_run else 'Updated'} workspace root: {f_name}")
+            # If the workspace was deployed in agent-only mode, keep root clean
+            is_agent_only_workspace = not (workspace_path / "AGENTS.md").exists() and (dot_agents / "AGENTS.md").exists()
+            if not is_agent_only_workspace:
+                for f_name in WORKSPACE_ROOT_FILES:
+                    src_file = find_asset_file(f_name)
+                    dest_file = workspace_path / f_name
+                    if src_file and src_file.exists():
+                        if f_name == "AGENTS.md" and workspace_path != REPO_ROOT:
+                            content = src_file.read_text(encoding="utf-8")
+                            content = content.replace("](references/", "](.agents/references/")
+                            content = content.replace("](rules/", "](.agents/rules/")
+                            dest_content = dest_file.read_text(encoding="utf-8") if dest_file.exists() else None
+                            if dest_content != content:
+                                if not dry_run:
+                                    dest_file.write_text(content, encoding="utf-8", newline="\n")
+                                action_sink.append(f"{'Would update' if dry_run else 'Updated'} workspace root: {f_name}")
+                        else:
+                            up_h = cls.compute_file_hash(src_file)
+                            loc_h = cls.compute_file_hash(dest_file)
+                            if up_h != loc_h:
+                                if not dry_run:
+                                    shutil.copy2(src_file, dest_file)
+                                action_sink.append(f"{'Would update' if dry_run else 'Updated'} workspace root: {f_name}")
 
             # Workspace scripts/ synchronization if folder exists
             ws_scripts = workspace_path / "scripts"
-            if ws_scripts.is_dir():
+            if ws_scripts.is_dir() and not is_agent_only_workspace:
                 src_scripts = REPO_ROOT / "scripts"
                 ws_actions = cls.sync_directory_with_guard(src_scripts, ws_scripts, label="scripts", force=force, dry_run=dry_run)
                 action_sink.extend(ws_actions)
@@ -443,6 +446,8 @@ class WorkspaceUpdater:
                         }
 
         lock_target = workspace_path / "skills-lock.json"
+        if not lock_target.exists() and (dot_agents / "skills-lock.json").exists():
+            lock_target = dot_agents / "skills-lock.json"
         lock_content = json.dumps(skills_lock, indent=2) + "\n"
         existing_lock = lock_target.read_text(encoding="utf-8") if lock_target.exists() else None
         needs_lock_update = (existing_lock is None) or (existing_lock.strip() != lock_content.strip())
