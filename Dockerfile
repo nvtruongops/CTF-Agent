@@ -32,6 +32,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     python3-pip \
     python3-venv \
     python3-dev \
+    python3-cffi \
+    python3-zstandard \
+    python3-cryptography \
+    python3-wheel \
+    python3-setuptools \
     # Libraries
     libgmp-dev \
     libmpfr-dev \
@@ -56,6 +61,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ropper \
     python3-filebytes \
     python3-pwntools \
+    python3-capstone \
+    python3-unicorn \
     # Reverse Engineering & WASM
     upx-ucl \
     wabt \
@@ -74,12 +81,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     imagemagick \
     yara \
     bulk-extractor \
+    python3-pefile \
     # Cryptography
     pari-gp \
     hashcat \
     john \
     qrencode \
     python3-fpylll \
+    python3-pycryptodome \
+    python3-z3 \
     # Web Exploitation
     sqlmap \
     nikto \
@@ -104,6 +114,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     nmap \
     whois \
     bind9-dnsutils \
+    python3-scapy \
     && rm -rf /var/lib/apt/lists/*
 
 # 2. Ruby Gems (Pwn & Stego)
@@ -123,32 +134,26 @@ RUN curl -sSfL https://foundry.paradigm.xyz | bash && \
 # 5. Dedicated Python Virtualenv with CTF packages (Matching ctf-tools.lock)
 RUN python3 -m venv --system-site-packages /root/.ctf-tools/venv && \
     /root/.ctf-tools/venv/bin/pip install --no-cache-dir --upgrade pip setuptools wheel && \
-    /root/.ctf-tools/venv/bin/pip install --no-cache-dir \
+    /root/.ctf-tools/venv/bin/pip install --no-cache-dir --no-build-isolation \
     # Core & Networking
     requests==2.32.5 \
     shodan==1.31.0 \
-    scapy==2.7.0 \
     dnspython==2.8.0 \
     dnslib==0.9.26 \
     # Pwn & Binary
     ROPgadget==7.7 \
-    capstone==5.0.9 \
-    unicorn==2.1.2 \
     qiling==1.4.6 \
     # Reverse Engineering
     angr==9.3.4 \
     lief==0.17.6 \
     frida-tools==14.10.4 \
     # Cryptography
-    pycryptodome==3.23.0 \
-    z3-solver==4.13.0.0 \
     sympy==1.14.0 \
     gmpy2==2.3.0 \
     py_ecc==8.0.0 \
     hashpumpy==1.2 \
     # Forensics
     volatility3==2.27.0 \
-    pefile==2024.8.26 \
     oletools==0.60.2 \
     Pillow==11.3.0 \
     dissect.cobaltstrike==1.2.1 \
