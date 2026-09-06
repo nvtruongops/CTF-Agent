@@ -9,7 +9,7 @@ import sys
 import importlib.util
 from pathlib import Path
 
-__version__ = "1.3.3"
+__version__ = "1.3.4"
 
 REPO_ROOT = Path(__file__).resolve().parent
 SCRIPTS_DIR = REPO_ROOT / "scripts"
