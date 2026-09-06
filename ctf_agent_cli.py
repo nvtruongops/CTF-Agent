@@ -48,6 +48,18 @@ def main():
         sys.argv = [sys.argv[0]] + args[1:]
         updater = _load_entrypoint("ctf_update", "ctf_update.py")
         updater()
+    elif args and args[0] in ("validate-skill", "check-skill", "check-skills", "audit-skill"):
+        sys.argv = [sys.argv[0]] + args[1:]
+        validator = _load_entrypoint("skill_validator", "skill_validator.py")
+        validator()
+    elif args and args[0] in ("triage", "parallel-triage"):
+        sys.argv = [sys.argv[0]] + args[1:]
+        triage = _load_entrypoint("parallel_triage", "parallel_triage.py")
+        triage()
+    elif args and args[0] in ("scope-guard", "guard"):
+        sys.argv = [sys.argv[0]] + args[1:]
+        guard = _load_entrypoint("scope_guard", "scope_guard.py")
+        guard()
     elif args and args[0] == "init":
         sys.argv = [sys.argv[0]] + args[1:]
         initializer = _load_entrypoint("ctf_init", "ctf_init.py")

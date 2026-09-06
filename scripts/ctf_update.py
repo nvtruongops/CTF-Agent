@@ -334,7 +334,21 @@ class WorkspaceUpdater:
                 result["actions_taken"].append(action_str)
 
             elif diff.status == SkillDiff.STATUS_CUSTOM:
-                result["actions_taken"].append(f"Preserved custom skill: {diff.name}")
+                custom_skill_dir = local_skills_dir / diff.name
+                audit_suffix = ""
+                try:
+                    from scripts.skill_validator import SkillEnvelopeValidator
+                    val_rep = SkillEnvelopeValidator.validate_skill_dir(custom_skill_dir)
+                    if not val_rep.is_valid:
+                        audit_suffix = f" (envelope issues: {len(val_rep.errors)} errors, run 'ctf-agent validate-skill {custom_skill_dir}')"
+                    elif val_rep.warnings:
+                        audit_suffix = f" (envelope warnings: {len(val_rep.warnings)})"
+                    else:
+                        audit_suffix = " (envelope verified PASS)"
+                except Exception:
+                    pass
+
+                result["actions_taken"].append(f"Preserved custom skill: {diff.name}{audit_suffix}")
 
         # 2. Synchronize non-skill directories & files unless skills_only
         if not skills_only:

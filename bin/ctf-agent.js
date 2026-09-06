@@ -72,6 +72,15 @@ function main() {
   if (args.length > 0 && args[0] === 'update') {
     scriptFile = 'ctf_update.py';
     forwardArgs = args.slice(1);
+  } else if (args.length > 0 && (args[0] === 'validate-skill' || args[0] === 'check-skill' || args[0] === 'check-skills' || args[0] === 'audit-skill')) {
+    scriptFile = 'skill_validator.py';
+    forwardArgs = args.slice(1);
+  } else if (args.length > 0 && (args[0] === 'triage' || args[0] === 'parallel-triage')) {
+    scriptFile = 'parallel_triage.py';
+    forwardArgs = args.slice(1);
+  } else if (args.length > 0 && (args[0] === 'scope-guard' || args[0] === 'guard')) {
+    scriptFile = 'scope_guard.py';
+    forwardArgs = args.slice(1);
   } else if (args.length > 0 && args[0] === 'init') {
     scriptFile = 'ctf_init.py';
     forwardArgs = args.slice(1);

@@ -226,6 +226,28 @@ While the Prompt Policy Sanitizer protects prompts from semantic upstream LLM fi
 | [`ctf-malware`](skills/ctf-malware/SKILL.md) | **Malware Analysis** | C2 protocol decoding, PE/.NET unpackers, obfuscated script analysis. |
 | [`ctf-writeup`](skills/ctf-writeup/SKILL.md) | **Write-up Generator** | Standardized 5-section submission writeup and directory organizer. |
 
+### Custom Skill Extension & Envelope Validation
+
+When adding external or custom CTF skills into `.agents/skills/`, run the built-in validator ([scripts/skill_validator.py](scripts/skill_validator.py)) to ensure prompt envelope compatibility and prevent model policy rejections:
+
+```bash
+# Validate a specific custom skill:
+ctf-agent validate-skill .agents/skills/my-custom-skill
+
+# Audit all skills in the workspace:
+ctf-agent validate-skill --all
+
+# Via NPX:
+npx ctf-agent validate-skill .agents/skills/my-custom-skill
+```
+
+**Compatibility Rules Checked**:
+- **Shallow Orchestration (Depth <= 1)**: Verifies the skill operates as a direct specialist without recursive subagent chaining.
+- **YAML Frontmatter Integrity**: Verifies `name`, `description` (>= 20 chars), and checks against collisions with reserved core skills.
+- **Operational Mode Handling**: Checks for Blitz Mode (Stop-on-Flag) and Deep Mode (RCA / writeup).
+- **LLM Safety Policy Lexicon**: Flags unshielded adversarial triggers (`evil_payload`, `jailbreak`, `weaponize`) and recommends academic diagnostic equivalents.
+- **Command Boundary Guard**: Intercepts destructive host commands (`rm -rf /`, `mkfs`) and backdoor persistence attempts (`crontab`, `authorized_keys`).
+
 ---
 
 ## Parallel Triage & High-Speed Reconnaissance (P0 Engine)
@@ -447,6 +469,9 @@ Located in [scripts/](scripts/):
 - **`scope_guard.py`**:
   - `python3 scripts/scope_guard.py <target-or-command>`: Machine-enforces authorized testing boundaries (RFC1918 subnets, loopback, CTF platform domains) and blocks destructive commands or root persistence attempts.
   - `python3 scripts/scope_guard.py --target <url> --json`: Generates a formal Security Context Object (SCO) for multi-agent dispatch.
+- **`skill_validator.py`**:
+  - `python3 scripts/skill_validator.py <path-to-skill>`: Validates external custom skills against YAML frontmatter schemas, shallow orchestration constraints (depth <= 1), mode awareness, policy lexicon, and prohibited commands.
+  - `python3 scripts/skill_validator.py --all --json`: Scans all skills across `.agents/skills/` and returns structured JSON reports for CI/CD or agent pipelines.
 - **`prompt_policy_sanitizer.py`**:
   - `python3 scripts/prompt_policy_sanitizer.py "<prompt>" --lang [vi|en]`: Scans, scores policy risk, and sanitizes prompts with academic terminology and educational CTF preambles.
   - `python3 scripts/prompt_policy_sanitizer.py --file <path> --check`: Verifies that challenge writeups, prompts, or scripts do not trigger modern LLM backend filters.
