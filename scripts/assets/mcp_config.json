@@ -14,6 +14,11 @@
       "command": "npx",
       "args": ["-y", "@cyberchef/mcp-server@latest"],
       "description": "CyberChef automated recipe decoding and transformation MCP server"
+    },
+    "ctfd-server": {
+      "command": "python",
+      "args": ["scripts/ctfd_mcp_server.py"],
+      "description": "Native CTFd platform integration for listing, downloading, and submitting challenge flags"
     }
   }
 }

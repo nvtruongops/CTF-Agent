@@ -1,19 +1,16 @@
 #!/usr/bin/env python3
 """
-CTF-Agent Universal Multi-Agent Adapter Engine
----------------------------------------------
-Generates thin, native configuration pointers and adapters for diverse AI coding agents
-(Claude Code, Cursor, Windsurf, GitHub Copilot, OpenAI Codex, Aider), establishing
-AGENTS.md and mcp_config.json as the Universal Single Source of Truth (SSOT).
+CTF-Agent Workspace Rule Exporter & Configuration Scaffolder (Tier-2 Auxiliary Bridge)
+-------------------------------------------------------------------------------------
+Exports thin configuration pointers and rule scaffolding for external AI editors and CLIs
+(Claude Code, Cursor, Windsurf, GitHub Copilot, Aider), establishing AGENTS.md as the
+Single Source of Truth (SSOT).
 
-Supported Agent Runtimes:
-  - antigravity : Google Gemini Antigravity IDE (native AGENTS.md + .agents/ brain)
-  - claude      : Anthropic Claude Code (CLAUDE.md + .mcp.json)
-  - cursor      : Cursor IDE (.cursorrules + .cursor/rules/ctf-agent.mdc + .cursor/mcp.json)
-  - windsurf    : Codeium Windsurf (.windsurfrules)
-  - copilot     : GitHub Copilot Workspace (.github/copilot-instructions.md)
-  - aider       : Aider CLI (.aider.conf.yml)
-  - all         : Deploy all adapter pointers simultaneously
+Architecture Note:
+  - Tier 1 (Native Primary Runtime): Google Antigravity IDE & CLI
+    Native support for .agents/ brain, dynamic skills, subagent personas, and eager execution.
+  - Tier 2 (Rule Forwarding Scaffolding): Claude, Cursor, Windsurf, Copilot, Aider
+    Lightweight rule-file pointers directing external agents to read AGENTS.md.
 """
 
 import sys

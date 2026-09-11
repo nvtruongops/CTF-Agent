@@ -1,7 +1,7 @@
 # CTF-Agent: Autonomous Security Intelligence & Competitive Exploitation Framework
 
 [![npm version](https://img.shields.io/npm/v/ctf-agent.svg)](https://www.npmjs.com/package/ctf-agent)
-[![Release](https://img.shields.io/badge/release-v1.3.6-blue.svg)](https://github.com/nvtruongops/CTF-Agent/releases)
+[![Release](https://img.shields.io/badge/release-v1.3.7-blue.svg)](https://github.com/nvtruongops/CTF-Agent/releases)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![Docker Image](https://img.shields.io/badge/docker-ghcr.io%2Fnvtruongops%2Fctf--agent-blue.svg)](https://github.com/nvtruongops/CTF-Agent/pkgs/container/ctf-agent)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
@@ -557,30 +557,34 @@ python scripts/install_as_agent.py --global
 > [!NOTE]
 > `~/.gemini/` is the host-level global configuration directory specifically for the Google Antigravity ecosystem (`~/.gemini/config/plugins/` and `~/.gemini/config/config.json`). It enables eager command execution and global agent discovery across all workspaces opened in Antigravity.
 
-### Method 3: Universal Multi-Agent Deployment (Cursor, Claude Code, Windsurf, Copilot, Aider)
-CTF-Agent is not restricted to Antigravity. It is a universal, model-agnostic security framework where `AGENTS.md` and `.agents/` serve as the Single Source of Truth (SSOT). The included Multi-Agent Adapter generates native configuration files and pointers for all major AI coding agents:
+### Method 3: Primary Runtime vs. Auxiliary Workspace Scaffolding
+CTF-Agent adopts a **Tiered Runtime Architecture** designed to focus deeply on its primary environment while maintaining lightweight rule compatibility across other editors:
+
+- **Tier 1: Primary Native Runtime (Google Antigravity IDE & CLI)**
+  Full deep integration with Antigravity's native agentic architecture: auto-discovery of skills (`.agents/skills/`), specialized subagent personas (`agents/`), planning mode, eager CLI execution (`CASCADE_COMMANDS_AUTO_EXECUTION_EAGER`), and native stdio MCP servers.
+- **Tier 2: Auxiliary Rule Scaffolding (Cursor, Claude Code, Windsurf, Copilot, Aider)**
+  For developers working across multiple editors, the included `multi_agent_adapter.py` script exports thin configuration pointers (`CLAUDE.md`, `.cursorrules`, `.windsurfrules`, `.mcp.json`) referencing `AGENTS.md` as the Single Source of Truth (SSOT).
 
 ```bash
-# Generate configuration adapters for all supported AI agents simultaneously:
+# Generate auxiliary rule pointers for external editors:
 python scripts/multi_agent_adapter.py --agent all
 
-# Or generate for a specific agent runtime:
+# Or export rules for a specific editor:
 python scripts/multi_agent_adapter.py --agent claude      # CLAUDE.md + .mcp.json
 python scripts/multi_agent_adapter.py --agent cursor      # .cursorrules + .cursor/rules/ctf-agent.mdc
 python scripts/multi_agent_adapter.py --agent windsurf    # .windsurfrules
 python scripts/multi_agent_adapter.py --agent copilot     # .github/copilot-instructions.md
 python scripts/multi_agent_adapter.py --agent aider       # .aider.conf.yml
-python scripts/multi_agent_adapter.py --agent antigravity # .agents/ + AGENTS.md + GEMINI.md
 ```
 
-| Agent Runtime | Native Configuration File | Host / Workspace Scope |
+| Runtime Tier | Target Environment | Integration Depth & Scope |
 | :--- | :--- | :--- |
-| **Google Antigravity** | `~/.gemini/config/` & `.agents/` | Global plugin & workspace customization root |
-| **Anthropic Claude Code** | `CLAUDE.md` & `.mcp.json` | Project workspace instructions & MCP |
-| **Cursor IDE** | `.cursorrules` & `.cursor/rules/ctf-agent.mdc` | Workspace rules & MDC directory |
-| **Codeium Windsurf** | `.windsurfrules` | Project workspace rules |
-| **GitHub Copilot** | `.github/copilot-instructions.md` | Repository instructions |
-| **Aider CLI** | `.aider.conf.yml` | Workspace chat configuration |
+| **Tier 1 (Native)** | **Google Antigravity** | **Full Native Lifecycle**: Skills, Subagents, Planning Mode, Stdio MCP, Auto-Execution |
+| **Tier 2 (Scaffolding)** | **Anthropic Claude Code** | Rule Pointer: `CLAUDE.md` + `.mcp.json` referencing `AGENTS.md` |
+| **Tier 2 (Scaffolding)** | **Cursor IDE** | Rule Pointer: `.cursorrules` + `.cursor/rules/ctf-agent.mdc` |
+| **Tier 2 (Scaffolding)** | **Codeium Windsurf** | Rule Pointer: `.windsurfrules` |
+| **Tier 2 (Scaffolding)** | **GitHub Copilot** | Rule Pointer: `.github/copilot-instructions.md` |
+| **Tier 2 (Scaffolding)** | **Aider CLI** | Rule Pointer: `.aider.conf.yml` |
 
 ### Method 4: Direct Usage Within This Workspace
 This workspace already has `.agents/` configured. You can start prompting directly using slash commands and text flags:
