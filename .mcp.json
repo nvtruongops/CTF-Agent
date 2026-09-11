@@ -1,0 +1,34 @@
+{
+  "mcpServers": {
+    "gdb-server": {
+      "command": "wsl",
+      "args": [
+        "-d",
+        "kali-linux",
+        "bash",
+        "-c",
+        "python3 -m pwndbg.mcp_server 2>/dev/null || true"
+      ],
+      "description": "Interactive GDB and pwndbg binary inspection MCP server"
+    },
+    "radare2-server": {
+      "command": "wsl",
+      "args": [
+        "-d",
+        "kali-linux",
+        "bash",
+        "-c",
+        "r2 -e http.port=8080 -qc '=h' /dev/null 2>/dev/null || true"
+      ],
+      "description": "Radare2 disassembly and binary analysis server"
+    },
+    "cyberchef-server": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@cyberchef/mcp-server@latest"
+      ],
+      "description": "CyberChef automated recipe decoding and transformation MCP server"
+    }
+  }
+}

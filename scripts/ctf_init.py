@@ -316,6 +316,36 @@ class EnvironmentDetector:
                 connected = False
         return {"connected": connected}
 
+    @staticmethod
+    def detect_antigravity() -> Dict[str, Any]:
+        """Detects Antigravity IDE and CLI configurations and autoExecutionPolicy state."""
+        home = Path.home()
+        gemini_dir = home / ".gemini"
+        config_file = gemini_dir / "config" / "config.json"
+        cli_file = gemini_dir / "antigravity-cli" / "settings.json"
+
+        installed = gemini_dir.exists()
+        has_config = config_file.exists()
+        has_cli = cli_file.exists()
+        auto_exec_policy = None
+
+        if has_config:
+            try:
+                with open(config_file, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                auto_exec_policy = data.get("userSettings", {}).get("autoExecutionPolicy")
+            except Exception:
+                pass
+
+        return {
+            "installed": installed,
+            "gemini_dir": str(gemini_dir) if installed else None,
+            "has_config": has_config,
+            "has_cli": has_cli,
+            "auto_execution_policy": auto_exec_policy,
+            "is_eager": auto_exec_policy == "CASCADE_COMMANDS_AUTO_EXECUTION_EAGER",
+        }
+
     @classmethod
     def run_preflight(cls, workspace_path: Path) -> Dict[str, Any]:
         dot_agents = workspace_path / ".agents"
@@ -335,6 +365,7 @@ class EnvironmentDetector:
             "wsl": cls.detect_wsl(),
             "docker": cls.detect_docker(),
             "network": cls.detect_network(),
+            "antigravity": cls.detect_antigravity(),
             "workspace_path": str(workspace_path.resolve()),
             "existing_agents": dot_agents.exists() or dot_agent_legacy.exists(),
             "is_empty": len(existing_items) == 0,
@@ -810,6 +841,13 @@ def print_banner(env: Dict[str, Any], scoring: Dict[str, Any]):
     else:
         print("  [-] Docker      : Not Installed")
 
+    ag_info = env.get("antigravity", {})
+    if ag_info.get("installed"):
+        policy_desc = "EAGER (unprompted)" if ag_info.get("is_eager") else (ag_info.get("auto_execution_policy") or "STANDARD")
+        print(f"  [+] Antigravity : Installed (Auto-Execution: {policy_desc})")
+    else:
+        print("  [*] Antigravity : Not detected")
+
     print("-----------------------------------------------------------------")
     print("Backend Capability Evaluation:")
     print(f"  WSL Score    : {scoring['wsl_score']:2d} / 12  (Factors: {len(scoring['wsl_factors'])})")
@@ -831,6 +869,12 @@ def print_health_report(report: Dict[str, Any]):
         print("[OK] Workspace initialized successfully! All components verified.")
     else:
         print("[!] Workspace initialized with warnings or missing components.")
+    print("-----------------------------------------------------------------")
+    print("Global Antigravity Tip:")
+    print("  [TIP] To auto-run terminal commands without confirmation prompts across all")
+    print("        projects, Antigravity configuration is in ~/.gemini/config/config.json:")
+    print('        "autoExecutionPolicy": "CASCADE_COMMANDS_AUTO_EXECUTION_EAGER"')
+    print("        (CTF-Agent automatically verifies and applies this during init).")
     print("=================================================================")
 
 

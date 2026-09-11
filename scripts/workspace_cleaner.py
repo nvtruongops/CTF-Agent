@@ -57,8 +57,58 @@ PROTECTED_FILES = {
     "requirements.txt",
 }
 
-def clean_ephemeral_files(target_dir: Path, dry_run: bool = False) -> List[Path]:
-    """Identify and remove scratch/temporary files from target directory."""
+# Debris patterns frequently generated inside resources/ during experimentation
+RESOURCE_EPHEMERAL_PATTERNS = [
+    "test*.py",
+    "test_*.py",
+    "tmp*",
+    "temp*",
+    "*_tmp.py",
+    "scratch*",
+    "fuzz*.py",
+    "fuzz*.txt",
+    "payload*.bin",
+    "payload*.txt",
+    "exploit_tmp*.py",
+    "*search*.py",
+    "bing_*.py",
+    "google_*.py",
+    "ctftime_*.py",
+    "explore*.py",
+    "wsl_*.py",
+    "print_*.py",
+    "toy_*.py",
+    "core",
+    "core.*",
+    "*.pyc",
+    "*.swp",
+    "*~",
+    "*.o",
+    "*.out",
+]
+
+# Standard challenge assets inside resources/ that must be preserved
+RESOURCE_PROTECTED_FILES = {
+    "chall.py",
+    "server.py",
+    "main.py",
+    "app.py",
+    "param.txt",
+    "params.txt",
+    "flag.enc",
+    "flag.txt",
+    "secret.py",
+    "source.py",
+    "Makefile",
+    "solve.py",
+    "writeup.md",
+    "Dockerfile",
+    "docker-compose.yml",
+    "requirements.txt",
+}
+
+def clean_ephemeral_files(target_dir: Path, clean_resources: bool = False, dry_run: bool = False) -> List[Path]:
+    """Identify and remove scratch/temporary files from target directory (and optionally resources/)."""
     deleted_files = []
     
     for pattern in EPHEMERAL_PATTERNS:
@@ -77,10 +127,30 @@ def clean_ephemeral_files(target_dir: Path, dry_run: bool = False) -> List[Path]
                         shutil.rmtree(p)
                     except Exception as e:
                         print(f"[!] Warning: Could not delete {p.name}: {e}")
+
+    # Optionally sweep inside resources/ directory
+    resources_dir = target_dir / "resources"
+    if clean_resources and resources_dir.is_dir():
+        for pattern in RESOURCE_EPHEMERAL_PATTERNS:
+            for p in resources_dir.glob(pattern):
+                if p.is_file() and p.name not in RESOURCE_PROTECTED_FILES and p.name not in PROTECTED_FILES:
+                    deleted_files.append(p)
+                    if not dry_run:
+                        try:
+                            p.unlink()
+                        except Exception as e:
+                            print(f"[!] Warning: Could not delete resources/{p.name}: {e}")
+                elif p.is_dir() and p.name == "__pycache__":
+                    deleted_files.append(p)
+                    if not dry_run:
+                        try:
+                            shutil.rmtree(p)
+                        except Exception as e:
+                            print(f"[!] Warning: Could not delete resources/{p.name}: {e}")
                         
     return deleted_files
 
-def organize_deep_directory(target_dir: Path, dry_run: bool = False) -> List[Path]:
+def organize_deep_directory(target_dir: Path, clean_resources: bool = True, dry_run: bool = False) -> List[Path]:
     """Organize workspace into writeup.md, solve.py, and resources/ folder."""
     resources_dir = target_dir / "resources"
     moved_files = []
@@ -88,8 +158,8 @@ def organize_deep_directory(target_dir: Path, dry_run: bool = False) -> List[Pat
     if not dry_run:
         resources_dir.mkdir(exist_ok=True)
 
-    # First clean ephemeral debris
-    clean_ephemeral_files(target_dir, dry_run=dry_run)
+    # First clean ephemeral debris at root
+    clean_ephemeral_files(target_dir, clean_resources=False, dry_run=dry_run)
 
     for item in target_dir.iterdir():
         if item == resources_dir or item.name in PROTECTED_FILES or item.name.startswith("."):
@@ -108,6 +178,10 @@ def organize_deep_directory(target_dir: Path, dry_run: bool = False) -> List[Pat
             except Exception as e:
                 print(f"[!] Warning: Could not move {item.name} to resources/: {e}")
 
+    # Clean ephemeral debris inside resources/
+    if clean_resources and resources_dir.is_dir():
+        clean_ephemeral_files(target_dir, clean_resources=True, dry_run=dry_run)
+
     return moved_files
 
 def main():
@@ -115,6 +189,7 @@ def main():
     parser.add_argument("directory", nargs="?", default=".", help="Target workspace directory (default: current directory)")
     parser.add_argument("--fast", "--blitz", action="store_true", help="Fast mode: wipe scratch/debris files, preserve challenge & solve.py")
     parser.add_argument("--deep", "--organize", action="store_true", help="Deep mode: enforce resources/ directory structure")
+    parser.add_argument("--clean-resources", "-r", action="store_true", help="Clean ephemeral test/scratch debris inside resources/ directory")
     parser.add_argument("--dry-run", action="store_true", help="List files that would be cleaned without deleting")
     parser.add_argument("--quiet", "-q", action="store_true", help="Quiet output")
 
@@ -125,14 +200,16 @@ def main():
         print(f"[-] Error: {target} is not a valid directory.")
         sys.exit(1)
 
+    clean_res = args.clean_resources or args.deep
+
     if args.deep:
-        moved = organize_deep_directory(target, dry_run=args.dry_run)
+        moved = organize_deep_directory(target, clean_resources=clean_res, dry_run=args.dry_run)
         if not args.quiet:
             prefix = "[DRY-RUN] Would organize" if args.dry_run else "[+] Deep organized"
             print(f"{prefix} {len(moved)} item(s) into resources/ inside {target.name}")
     else:
         # Default is fast cleanup
-        removed = clean_ephemeral_files(target, dry_run=args.dry_run)
+        removed = clean_ephemeral_files(target, clean_resources=clean_res, dry_run=args.dry_run)
         if not args.quiet:
             prefix = "[DRY-RUN] Would remove" if args.dry_run else "[+] Cleaned"
             print(f"{prefix} {len(removed)} temporary scratch/debris file(s) in {target.name}")

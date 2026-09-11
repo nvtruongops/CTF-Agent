@@ -1,0 +1,8 @@
+---
+description: CTF Agent Autonomous Security Rules & Triage
+globs: *
+---
+
+# CTF Agent Rules
+
+Read and strictly enforce [AGENTS.md](AGENTS.md) for all security tasks.

@@ -1,0 +1,6 @@
+# Cursor AI CTF Agent Rules
+
+Follow the comprehensive operational constitution in [AGENTS.md](AGENTS.md).
+- Active operational modes: --blitz (fast time-to-flag) vs --deep (RCA + writeup.md).
+- Never run native Linux ELF binaries on Windows; execute via WSL Kali Linux.
+- Validate flags against platform regex before asserting completion.

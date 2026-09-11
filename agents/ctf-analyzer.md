@@ -1,7 +1,7 @@
 ---
 name: ctf-analyzer
 description: "In-depth CTF research and lab security auditor agent. Specializes in comprehensive root cause analysis (RCA), reverse engineering, artifact preservation, vulnerability documentation, and generating publication-ready writeups."
-mainAgent: true
+mainAgent: false
 subagent: true
 commandExecutionPolicy: auto
 allowed-tools: Bash Read Write Edit Glob Grep Task WebFetch WebSearch Skill

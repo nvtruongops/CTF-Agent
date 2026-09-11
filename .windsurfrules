@@ -1,0 +1,6 @@
+# Windsurf CTF Operational Rules
+
+Refer to [AGENTS.md](AGENTS.md) for core CTF triage, safety framing, and environment isolation.
+- Triage: Plaintext/Trivial -> Textbook -> Exploit Chains -> Advanced Meta.
+- Tools: WSL Kali Linux for ELF/GDB execution.
+- Documentation: Author standard 5-section writeup.md in --deep mode.

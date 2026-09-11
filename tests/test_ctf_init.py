@@ -372,3 +372,79 @@ def test_init_brain_flag(tmp_path):
 
 
 
+
+
+def test_antigravity_detection_structure(tmp_path):
+    # Verify detect_antigravity structure and preflight integration
+    ag = EnvironmentDetector.detect_antigravity()
+    assert isinstance(ag, dict)
+    assert "installed" in ag
+    assert "has_config" in ag
+    assert "has_cli" in ag
+    assert "auto_execution_policy" in ag
+    assert "is_eager" in ag
+
+    pre = EnvironmentDetector.run_preflight(tmp_path)
+    assert "antigravity" in pre
+    assert pre["antigravity"]["installed"] == ag["installed"]
+
+
+def test_configure_antigravity_eager_execution_mocked(tmp_path, monkeypatch):
+    # Mock home directory to tmp_path
+    monkeypatch.setattr(Path, "home", lambda: tmp_path)
+
+    gemini_dir = tmp_path / ".gemini"
+    cfg_dir = gemini_dir / "config"
+    cfg_dir.mkdir(parents=True)
+
+    # 1. Mock config.json
+    config_json = cfg_dir / "config.json"
+    config_json.write_text(
+        json.dumps({"userSettings": {"autoExecutionPolicy": "CASCADE_COMMANDS_AUTO_EXECUTION_OFF"}}),
+        encoding="utf-8"
+    )
+
+    # 2. Mock projects/outside-of-project.json
+    proj_dir = cfg_dir / "projects"
+    proj_dir.mkdir(parents=True)
+    outside_json = proj_dir / "outside-of-project.json"
+    outside_json.write_text(
+        json.dumps({"settings": {"autoExecutionPolicy": "CASCADE_COMMANDS_AUTO_EXECUTION_OFF"}}),
+        encoding="utf-8"
+    )
+
+    # 3. Mock antigravity-cli/settings.json
+    cli_dir = gemini_dir / "antigravity-cli"
+    cli_dir.mkdir(parents=True)
+    cli_json = cli_dir / "settings.json"
+    cli_json.write_text(
+        json.dumps({"toolPermission": "ask-first"}),
+        encoding="utf-8"
+    )
+
+    # 4. Mock GEMINI.md
+    gemini_md = gemini_dir / "GEMINI.md"
+    gemini_md.write_text("# Antigravity Architecture\nSection 1", encoding="utf-8")
+
+    # Run configuration
+    import install_as_agent
+    assert install_as_agent is not None
+    res = install_as_agent.configure_antigravity_eager_execution(quiet=True)
+    assert res["detected"] is True
+    assert res["config_updated"] is True
+    assert res["projects_updated"] >= 1
+    assert res["cli_updated"] is True
+    assert res["rules_updated"] is True
+
+    # Validate resulting files
+    cfg_res = json.loads(config_json.read_text(encoding="utf-8"))
+    assert cfg_res["userSettings"]["autoExecutionPolicy"] == "CASCADE_COMMANDS_AUTO_EXECUTION_EAGER"
+
+    outside_res = json.loads(outside_json.read_text(encoding="utf-8"))
+    assert outside_res["settings"]["autoExecutionPolicy"] == "CASCADE_COMMANDS_AUTO_EXECUTION_EAGER"
+
+    cli_res = json.loads(cli_json.read_text(encoding="utf-8"))
+    assert cli_res["toolPermission"] == "always-proceed"
+
+    rules_text = gemini_md.read_text(encoding="utf-8")
+    assert "Command-First Discipline & `run_command` Priority Protocol" in rules_text

@@ -9,7 +9,7 @@ import sys
 import importlib.util
 from pathlib import Path
 
-__version__ = "1.3.4"
+__version__ = "1.3.6"
 
 REPO_ROOT = Path(__file__).resolve().parent
 SCRIPTS_DIR = REPO_ROOT / "scripts"
@@ -60,10 +60,22 @@ def main():
         sys.argv = [sys.argv[0]] + args[1:]
         guard = _load_entrypoint("scope_guard", "scope_guard.py")
         guard()
-    elif args and args[0] in ("clean", "clean-workspace", "sanitize"):
+    elif args and args[0] in ("clean", "clean-workspace"):
         sys.argv = [sys.argv[0]] + args[1:]
         cleaner = _load_entrypoint("workspace_cleaner", "workspace_cleaner.py")
         cleaner()
+    elif args and args[0] in ("sanitize", "sanitize-prompt", "check-prompt", "policy"):
+        sys.argv = [sys.argv[0]] + args[1:]
+        sanitizer = _load_entrypoint("prompt_policy_sanitizer", "prompt_policy_sanitizer.py")
+        sanitizer()
+    elif args and args[0] in ("frame", "envelope", "wrap"):
+        sys.argv = [sys.argv[0]] + ["--frame"] + args[1:]
+        framer = _load_entrypoint("prompt_policy_sanitizer", "prompt_policy_sanitizer.py")
+        framer()
+    elif args and args[0] in ("adapter", "adapters", "multi-agent", "agent-adapter"):
+        sys.argv = [sys.argv[0]] + args[1:]
+        adapter_cmd = _load_entrypoint("multi_agent_adapter", "multi_agent_adapter.py")
+        adapter_cmd()
     elif args and args[0] in ("cve", "cve-lookup"):
         sys.argv = [sys.argv[0]] + args[1:]
         cve_util = _load_entrypoint("cve_lookup", "cve_lookup.py")

@@ -1,7 +1,7 @@
 # CTF-Agent: Autonomous Security Intelligence & Competitive Exploitation Framework
 
 [![npm version](https://img.shields.io/npm/v/ctf-agent.svg)](https://www.npmjs.com/package/ctf-agent)
-[![Release](https://img.shields.io/badge/release-v1.3.4-blue.svg)](https://github.com/nvtruongops/CTF-Agent/releases)
+[![Release](https://img.shields.io/badge/release-v1.3.6-blue.svg)](https://github.com/nvtruongops/CTF-Agent/releases)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![Docker Image](https://img.shields.io/badge/docker-ghcr.io%2Fnvtruongops%2Fctf--agent-blue.svg)](https://github.com/nvtruongops/CTF-Agent/pkgs/container/ctf-agent)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
@@ -21,6 +21,7 @@
 - [Parallel Triage & High-Speed Reconnaissance](#parallel-triage--high-speed-reconnaissance-p0-engine)
 - [Quick Start & Workspace Installation](#quick-start--workspace-installation)
 - [Flexible Deployment Modes (Brain vs Clean vs Scaffolding)](#flexible-deployment-modes-agent-brain-vs-clean-vs-scaffolding)
+- [Universal Multi-Agent Deployment (Antigravity, Cursor, Claude, Windsurf, Aider)](#method-3-universal-multi-agent-deployment-cursor-claude-code-windsurf-copilot-aider)
 - [Workspace & Skill Updates (ctf-agent update)](#workspace--skill-updates-ctf-agent-update)
 - [References & Deep Knowledge Base](#references--deep-knowledge-base)
 - [Constitution & Architectural Governance](#constitution--architectural-governance)
@@ -303,6 +304,18 @@ To maximize Time-to-Flag during live CTF competitions, `CTF-Agent` integrates a 
 
 ## Quick Start & Workspace Installation
 
+> [!TIP]
+> ### Global Eager Command Execution for Antigravity (`run_command` Priority)
+> If you want terminal commands (`run_command`) to run automatically without confirmation modals across all workspaces on this machine, Antigravity controls this setting in `~/.gemini/config/config.json`:
+> ```json
+> {
+>   "userSettings": {
+>     "autoExecutionPolicy": "CASCADE_COMMANDS_AUTO_EXECUTION_EAGER"
+>   }
+> }
+> ```
+> When you run `ctf-agent init` or `python scripts/install_as_agent.py`, CTF-Agent automatically detects your host Antigravity environment and configures this policy for you.
+
 ### Method 0: Intelligent Workspace Initialization (Triple-Engine Architecture)
 
 ```
@@ -536,13 +549,40 @@ python scripts/install_as_agent.py /path/to/ctf-workspace --symlink
 python scripts/install_as_agent.py /path/to/ctf-workspace
 ```
 
-### Method 2: Global Installation Across All Projects
-Install skills, rules, and subagents globally into `~/.gemini/config/`:
+### Method 2: Global Installation for Google Antigravity Across All Projects
+Install CTF skills, rules, and subagents globally into `~/.gemini/config/` for Antigravity IDE & Antigravity CLI:
 ```bash
 python scripts/install_as_agent.py --global
 ```
+> [!NOTE]
+> `~/.gemini/` is the host-level global configuration directory specifically for the Google Antigravity ecosystem (`~/.gemini/config/plugins/` and `~/.gemini/config/config.json`). It enables eager command execution and global agent discovery across all workspaces opened in Antigravity.
 
-### Method 3: Direct Usage Within This Workspace
+### Method 3: Universal Multi-Agent Deployment (Cursor, Claude Code, Windsurf, Copilot, Aider)
+CTF-Agent is not restricted to Antigravity. It is a universal, model-agnostic security framework where `AGENTS.md` and `.agents/` serve as the Single Source of Truth (SSOT). The included Multi-Agent Adapter generates native configuration files and pointers for all major AI coding agents:
+
+```bash
+# Generate configuration adapters for all supported AI agents simultaneously:
+python scripts/multi_agent_adapter.py --agent all
+
+# Or generate for a specific agent runtime:
+python scripts/multi_agent_adapter.py --agent claude      # CLAUDE.md + .mcp.json
+python scripts/multi_agent_adapter.py --agent cursor      # .cursorrules + .cursor/rules/ctf-agent.mdc
+python scripts/multi_agent_adapter.py --agent windsurf    # .windsurfrules
+python scripts/multi_agent_adapter.py --agent copilot     # .github/copilot-instructions.md
+python scripts/multi_agent_adapter.py --agent aider       # .aider.conf.yml
+python scripts/multi_agent_adapter.py --agent antigravity # .agents/ + AGENTS.md + GEMINI.md
+```
+
+| Agent Runtime | Native Configuration File | Host / Workspace Scope |
+| :--- | :--- | :--- |
+| **Google Antigravity** | `~/.gemini/config/` & `.agents/` | Global plugin & workspace customization root |
+| **Anthropic Claude Code** | `CLAUDE.md` & `.mcp.json` | Project workspace instructions & MCP |
+| **Cursor IDE** | `.cursorrules` & `.cursor/rules/ctf-agent.mdc` | Workspace rules & MDC directory |
+| **Codeium Windsurf** | `.windsurfrules` | Project workspace rules |
+| **GitHub Copilot** | `.github/copilot-instructions.md` | Repository instructions |
+| **Aider CLI** | `.aider.conf.yml` | Workspace chat configuration |
+
+### Method 4: Direct Usage Within This Workspace
 This workspace already has `.agents/` configured. You can start prompting directly using slash commands and text flags:
 - **Master Orchestrator**: `/solve-challenge <target-url-or-dir>`
 - **Speedrun / Blitz Mode (Fast Solve, Stop-on-Flag)**: `/solve-challenge --mode blitz <target>` or `/ctf-web --fast <target>` or `--blitz <prompt>`

@@ -64,6 +64,8 @@ def test_target_allows_ctf_domains():
         # FlagYard
         "https://flagyard.com",
         "http://challenge.flagyard.com",
+        "http://k7713bd208b213bab2c8852e0fa34b876.playat.flagyard.com",
+        "https://play.flagyard.com",
 
         # Local / lab
         "http://lab.local",

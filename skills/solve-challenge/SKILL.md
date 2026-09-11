@@ -185,7 +185,7 @@ If your first approach doesn't work:
 - Forensics + OSINT: recover data from dump, then trace it via public sources
 - Misc + Crypto: jail escape requires building crypto primitives under constraints
 - OSINT + Stego: social media posts with unicode homoglyph steganography (Cyrillic lookalikes encode bits)
-- Web + Forensics: paywall bypass (curl reveals content hidden by CSS overlays)
+- Web + Forensics: paywall inspection (curl reveals content hidden by CSS overlays)
 - Misc + Crypto + Game Theory: multi-phase interactive challenges with AES decryption → HMAC commitment → combinatorial game solving (GF(256) Nim)
 - Crypto + Geometry + Lattice: multi-layer challenges progressing from spatial reconstruction → subspace recovery → LWE solving → AES-GCM decryption
 - Forensics + Signal Processing: power traces / side-channel analysis requiring statistical analysis of measurement data

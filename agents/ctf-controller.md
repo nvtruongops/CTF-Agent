@@ -1,7 +1,7 @@
 ---
 name: ctf-controller
 description: "Master CTF and security lab orchestrator agent. Establishes the Security Context Object and Task Envelope, enforces shallow execution depth (Controller -> Specialist -> Deterministic Tools), operates the 3-Tier Refusal Router (Wording vs Ambiguity vs Hard Policy), manages evidence ledgers, and falls back to deterministic tooling to guarantee uninterrupted lab and challenge execution."
-mainAgent: true
+mainAgent: false
 subagent: true
 commandExecutionPolicy: auto
 allowed-tools: Bash Read Write Edit Glob Grep Task WebFetch WebSearch Skill

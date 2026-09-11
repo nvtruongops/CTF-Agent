@@ -1,7 +1,7 @@
 ---
 name: ctf-speedrun
 description: "Ultra-fast CTF solver agent specialized for live competitions and sprint scoring. Prioritizes time-to-flag, halts immediately upon discovering a valid flag, emits zero doc/writeup overhead, and automatically cleans up temporary scratch scripts and artifacts."
-mainAgent: true
+mainAgent: false
 subagent: true
 commandExecutionPolicy: auto
 allowed-tools: Bash Read Write Edit Glob Grep Task WebFetch WebSearch Skill
