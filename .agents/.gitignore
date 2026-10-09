@@ -1,0 +1,29 @@
+# Python and documentation checks
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+htmlcov/
+venv/
+.venv/
+
+# Local tooling and editors
+.codegraph/
+.vscode/
+.idea/
+.cursor/
+.DS_Store
+Thumbs.db
+
+# Challenge artifacts and scratch output
+*.core
+core.*
+*.dmp
+*.log
+tmp/
+scratch/
+.env
+.env.local
+*.pem
+*.key
+*.tmp

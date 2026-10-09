@@ -1,5 +1,0 @@
-# Aider Configuration for CTF-Agent
-read:
-  - AGENTS.md
-auto-commits: false
-attribute-author: false
