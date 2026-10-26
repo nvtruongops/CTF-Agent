@@ -4,14 +4,20 @@ import { runCommand, runWsl } from './wsl.js';
 import { doctor } from './doctor.js';
 import { loadManifest } from './manifest.js';
 import { applySetupPlan, buildSetupPlan, packagesForProfile, probeAptPackages, setupReadinessIssues } from './setup.js';
+import { applyIdeSetupPlan, buildIdeSetupPlan } from './ide-setup.js';
 import { startMcpServer } from './server.js';
 import { initScope } from './scope.js';
 import { runLearnCommand } from './learning.js';
+import { homedir } from 'node:os';
+import { existsSync, readFileSync } from 'node:fs';
+import { createInterface } from 'node:readline/promises';
+import { stdin, stdout } from 'node:process';
+import path from 'node:path';
 
 const [command, ...args] = process.argv.slice(2);
 
 function printHelp() {
-  process.stdout.write(`ctf-agent - scoped CTF tools over MCP\n\nUsage:\n  npm run ctf-agent -- doctor [--json]\n  npm run ctf-agent -- setup --plan|--apply [--profile full]\n  npm run ctf-agent -- scope init --challenge ID --workspace PATH [--target HOST:PORT ...]\n  npm run ctf-agent -- learn --propose --input <json-file> | --list [--topic TOPIC] | --show ID | --promote ID\n  npm run ctf-agent -- mcp\n`);
+  process.stdout.write(`ctf-agent - scoped CTF tools over MCP\n\nUsage:\n  npx ctf-agent setup [--client opencode|claude-code|codex|antigravity ...] [--dry-run] [--skills=false] [--yes]\n  npx ctf-agent setup --all-detected [--dry-run] [--skills=false] [--yes]\n  npm run ctf-agent -- setup --plan|--apply [--profile full]\n  npm run ctf-agent -- doctor [--json]\n  npm run ctf-agent -- scope init --challenge ID --workspace PATH [--target HOST:PORT ...]\n  npm run ctf-agent -- learn --propose --input <json-file> | --list [--topic TOPIC] | --show ID | --promote ID\n  npm run ctf-agent -- mcp\n`);
 }
 
 function parseOptions(args, allowed, repeatable = []) {
@@ -57,7 +63,7 @@ function runScopeCommand(args) {
   }
 
   const scope = initScope({
-    projectRoot: process.cwd(),
+    projectRoot: process.env.CTF_AGENT_PROJECT_ROOT ?? process.cwd(),
     challengeId: options.challenge,
     workspace: options.workspace,
     sourceRoots: options['source-root'] ?? [],
@@ -143,7 +149,7 @@ async function executeSetupAction(action) {
   return runWsl(args, options);
 }
 
-async function runSetupCommand(args) {
+async function runKaliSetupCommand(args) {
   const options = parseSetupOptions(args);
   if (options.help) {
     process.stdout.write('Usage: npm run ctf-agent -- setup (--plan|--apply) [--profile full] [--json]\n');
@@ -188,6 +194,120 @@ async function runSetupCommand(args) {
   if (['failed', 'blocked'].includes(result.status)) process.exitCode = 1;
 }
 
+function parseIdeSetupOptions(args) {
+  const options = { clients: [], dryRun: false, installSkills: true, yes: false, allDetected: false };
+  for (let index = 0; index < args.length; index += 1) {
+    const option = args[index];
+    if (option === '--help' || option === '-h') return { help: true };
+    if (option === '--client') {
+      const client = args[index + 1];
+      if (!client || client.startsWith('--')) throw new TypeError('--client requires a client ID');
+      options.clients.push(client);
+      index += 1;
+    } else if (option === '--all-detected') {
+      if (options.allDetected) throw new TypeError('duplicate option: --all-detected');
+      options.allDetected = true;
+    } else if (option === '--dry-run') {
+      if (options.dryRun) throw new TypeError('duplicate option: --dry-run');
+      options.dryRun = true;
+    } else if (option === '--skills=false') {
+      options.installSkills = false;
+    } else if (option === '--yes') {
+      if (options.yes) throw new TypeError('duplicate option: --yes');
+      options.yes = true;
+    } else {
+      throw new TypeError(`unknown IDE setup option: ${option}`);
+    }
+  }
+  if (options.clients.length > 0 && options.allDetected) throw new TypeError('choose --client or --all-detected, not both');
+  if (options.dryRun && options.yes) throw new TypeError('choose --dry-run or --yes, not both');
+  return options;
+}
+
+function selectedClients(options, homeDir) {
+  if (options.allDetected) {
+    const candidates = [
+      ['opencode', path.join(homeDir, '.config', 'opencode')],
+      ['claude-code', path.join(homeDir, '.claude')],
+      ['codex', path.join(homeDir, '.codex')],
+      ['antigravity', path.join(homeDir, '.gemini')],
+    ];
+    const detected = candidates.filter(([, directory]) => existsSync(directory)).map(([client]) => client);
+    if (detected.length === 0) throw new TypeError('no supported IDE configuration directories detected; use --client');
+    return detected;
+  }
+  if (options.clients.length > 0) return [...new Set(options.clients)];
+  if (!stdin.isTTY || !stdout.isTTY) throw new TypeError('setup requires an interactive client choice or --client <id>');
+  return null;
+}
+
+async function promptForClients() {
+  const prompt = createInterface({ input: stdin, output: stdout });
+  try {
+    const answer = await prompt.question('Choose IDEs (comma-separated: opencode, claude-code, codex, antigravity): ');
+    return answer.split(',').map((client) => client.trim()).filter(Boolean);
+  } finally {
+    prompt.close();
+  }
+}
+
+function displayIdeSetupPlan(plan, dryRun) {
+  process.stdout.write(`CTF-Agent IDE setup ${dryRun ? '(dry run)' : 'plan'}\n`);
+  for (const operation of plan.filter((item) => item.action === 'merge')) {
+    const status = operation.originalContent === operation.content ? 'already configured' : 'update MCP config';
+    process.stdout.write(`- ${operation.client}: ${status} ${operation.path}${operation.originalContent === null ? '' : ' (backup existing file)'}\n`);
+  }
+  const skills = plan.filter((item) => item.action === 'copy');
+  if (skills.length > 0) {
+    const roots = new Map();
+    for (const operation of skills) {
+      const client = operation.clients.join(',');
+      const root = operation.path.split(`${path.sep}skills${path.sep}`)[0] + `${path.sep}skills`;
+      roots.set(`${client}:${root}`, { client, root, count: (roots.get(`${client}:${root}`)?.count ?? 0) + 1 });
+    }
+    for (const { client, root, count } of roots.values()) process.stdout.write(`- ${client}: install ${count} skill files under ${root}\n`);
+  }
+  process.stdout.write(`Total file operations: ${plan.length}\n`);
+}
+
+async function runIdeSetupCommand(args) {
+  const options = parseIdeSetupOptions(args);
+  if (options.help) {
+    process.stdout.write('Usage: npx ctf-agent setup [--client opencode|claude-code|codex|antigravity ...] [--all-detected] [--dry-run] [--skills=false] [--yes]\n');
+    return;
+  }
+
+  const homeDir = process.env.USERPROFILE || homedir();
+  const clients = selectedClients(options, homeDir) ?? await promptForClients();
+  const packageJson = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
+  const plan = buildIdeSetupPlan({
+    clients,
+    homeDir,
+    packageVersion: packageJson.version,
+    installSkills: options.installSkills,
+  });
+  displayIdeSetupPlan(plan, options.dryRun);
+  if (options.dryRun) return;
+
+  let confirm = options.yes;
+  if (!confirm) {
+    if (!stdin.isTTY || !stdout.isTTY) throw new TypeError('non-interactive setup requires --dry-run or --yes');
+    const prompt = createInterface({ input: stdin, output: stdout });
+    try {
+      confirm = /^y(?:es)?$/i.test((await prompt.question('Apply these changes? [y/N] ')).trim());
+    } finally {
+      prompt.close();
+    }
+  }
+  const result = applyIdeSetupPlan(plan, { confirm });
+  process.stdout.write(result.applied ? `Applied ${result.written.length} file operations; backups: ${result.backups.length}\n` : 'No changes applied.\n');
+}
+
+async function runSetupCommand(args) {
+  if (args.includes('--plan') || args.includes('--apply')) return runKaliSetupCommand(args);
+  return runIdeSetupCommand(args);
+}
+
 async function main() {
   if (!command || command === '--help' || command === '-h') {
     printHelp();
@@ -197,7 +317,7 @@ async function main() {
   if (command === 'mcp') {
     await startMcpServer({
       manifest: loadManifest(),
-      projectRoot: process.cwd(),
+      projectRoot: process.env.CTF_AGENT_PROJECT_ROOT ?? process.cwd(),
     });
     return;
   }

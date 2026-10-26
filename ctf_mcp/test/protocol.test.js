@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
-import { Client } from '@modelcontextprotocol/client';
+import { Client, InMemoryTransport } from '@modelcontextprotocol/client';
 import { StdioClientTransport } from '@modelcontextprotocol/client/stdio';
 import test from 'node:test';
+import { createServer } from '../server.js';
 
 test('stdio MCP exposes a health tool with a verifiable server identity', async () => {
   const client = new Client({ name: 'ctf-agent-test', version: '0.1.0' });
@@ -46,7 +47,7 @@ test('stdio MCP exposes a health tool with a verifiable server identity', async 
     const text = result.content.find((block) => block.type === 'text')?.text;
     assert.deepEqual(JSON.parse(text), {
       name: 'ctf-agent',
-      status: 'ready',
+      status: 'alive',
       version: '0.1.0',
     });
 
@@ -77,5 +78,34 @@ test('stdio MCP exposes a health tool with a verifiable server identity', async 
     assert.match(rejected.content.find((block) => block.type === 'text')?.text ?? '', /scope/i);
   } finally {
     await client.close();
+  }
+});
+
+test('health reports liveness without probing WSL readiness', async () => {
+  let wslCalls = 0;
+  const server = createServer({
+    runWsl: async () => {
+      wslCalls += 1;
+      throw new Error('health must not probe WSL');
+    },
+  });
+  const client = new Client({ name: 'ctf-agent-test', version: '0.1.0' });
+  const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+
+  try {
+    await server.connect(serverTransport);
+    await client.connect(clientTransport);
+    const result = await client.callTool({ name: 'ctf_mcp_health', arguments: {} });
+    const text = result.content.find((block) => block.type === 'text')?.text;
+
+    assert.deepEqual(JSON.parse(text), {
+      name: 'ctf-agent',
+      status: 'alive',
+      version: '0.1.0',
+    });
+    assert.equal(wslCalls, 0);
+  } finally {
+    await client.close();
+    await server.close();
   }
 });

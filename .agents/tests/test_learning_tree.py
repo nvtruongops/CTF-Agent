@@ -3,6 +3,7 @@ from pathlib import Path
 
 
 SKILL_NAME = "ctf-lab-retrospective"
+WORKFLOW_SKILLS = ("ctf-solve-challenge", "ctf-solve-report")
 SKILL_TREE_REFERENCE = re.compile(r"\bskill[- ]tree\b|\bapproved (?:topic )?patterns\b|patterns/<topic>")
 
 
@@ -19,13 +20,14 @@ def read_skill(path: Path) -> tuple[dict[str, str], str]:
     return metadata, content
 
 
-def test_retrospective_skill_has_discoverable_frontmatter_and_resolvable_links(repo_root: Path):
+def test_retrospective_skill_is_user_invoked_and_has_resolvable_links(repo_root: Path):
     skill_path = repo_root / "skills" / SKILL_NAME / "SKILL.md"
     assert skill_path.is_file(), "canonical retrospective skill is missing"
     metadata, content = read_skill(skill_path)
 
     assert metadata.get("name") == SKILL_NAME
-    assert metadata.get("description", "").startswith("Use when")
+    assert metadata.get("disable-model-invocation") == "true"
+    assert "explicitly invoked" in metadata.get("description", "").lower()
     assert len(metadata["description"]) <= 1024
     assert "verified flag" in metadata["description"].lower() or "reported result" in metadata["description"].lower()
 
@@ -54,21 +56,50 @@ def test_claude_entry_points_to_canonical_retrospective_skill(repo_root: Path):
     assert "read and follow the canonical skill" in bridge_text.lower()
 
 
-def test_solve_challenge_runs_retrospective_after_report_only_for_deep_labs(repo_root: Path):
-    content = (repo_root / "skills" / "solve-challenge" / "SKILL.md").read_text(encoding="utf-8")
-    completion = content.split("### Step 6: Post-Exploitation & Completion", 1)[1]
-    blitz, deep = completion.split("#### Branch B: Deep Analysis Mode", 1)
+def test_workflow_skills_have_canonical_and_claude_entrypoints(repo_root: Path):
+    for name in WORKFLOW_SKILLS:
+        canonical_path = repo_root / "skills" / name / "SKILL.md"
+        bridge_path = repo_root / ".claude" / "skills" / name / "SKILL.md"
+        assert canonical_path.is_file(), f"canonical {name} skill is missing"
+        assert bridge_path.is_file(), f"Claude {name} bridge is missing"
+        canonical, _ = read_skill(canonical_path)
+        bridge, _ = read_skill(bridge_path)
+        assert canonical.get("name") == name
+        assert bridge.get("name") == canonical.get("name")
+        assert bridge.get("description") == canonical.get("description")
+        target = bridge_path.parent / "../../../skills" / name / "SKILL.md"
+        assert target.resolve() == canonical_path.resolve()
+        assert target.is_file()
 
-    assert "ctf-lab-retrospective" in deep
-    assert re.search(r"verified.{0,80}(?:flag|result).{0,120}report", deep, re.IGNORECASE | re.DOTALL)
-    assert deep.index("report") < deep.index("ctf-lab-retrospective")
-    assert "retrospective" in blitz.lower()
-    assert re.search(r"(?:skip|do not invoke|does not run).{0,80}retrospective", blitz, re.IGNORECASE | re.DOTALL)
-    assert re.search(r"unless the user asks", blitz, re.IGNORECASE)
+
+def test_solver_reports_verified_flag_before_report_and_never_auto_retrospects(repo_root: Path):
+    solver = (repo_root / "skills" / "ctf-solve-challenge" / "SKILL.md").read_text(encoding="utf-8")
+    lower = solver.lower()
+
+    assert "fastest route to the first verified flag" in lower
+    assert "stop challenge probing once the flag is verified" in lower
+    assert "report the exact flag and its direct verification evidence" in lower
+    assert lower.index("report the exact flag") < lower.index("ctf-solve-report")
+    assert "ctf-lab-retrospective" in lower
+    assert "only when the user explicitly invokes" in lower
+    assert "deep/lab mode alone never triggers" in lower
+    assert "determine the primary category, then invoke the matching skill." in lower
+
+
+def test_report_skill_targets_supplied_folder_without_workspace_mutation(repo_root: Path):
+    report = (repo_root / "skills" / "ctf-solve-report" / "SKILL.md").read_text(encoding="utf-8")
+    lower = report.lower()
+
+    assert "writeup.md" in lower
+    assert "supplied challenge folder" in lower
+    assert "if `writeup.md` already exists, ask before writing" in lower
+    assert "if the destination is ambiguous, ask before writing" in lower
+    assert "do not move, delete, or reorganize challenge files" in lower
+    assert "direct verification evidence" in lower
 
 
 def test_challenge_triage_uses_category_skills_without_pattern_tree_lookup(repo_root: Path):
-    content = (repo_root / "skills" / "solve-challenge" / "SKILL.md").read_text(encoding="utf-8")
+    content = (repo_root / "skills" / "ctf-solve-challenge" / "SKILL.md").read_text(encoding="utf-8")
     lower = content.lower()
 
     assert SKILL_TREE_REFERENCE.search("consult approved patterns in the skill tree")
@@ -143,12 +174,30 @@ def test_agents_readme_documents_retrospective_and_optional_learning_cli(repo_ro
     readme = (repo_root / "README.md").read_text(encoding="utf-8").lower()
     assert SKILL_NAME in readme
     assert "optional" in readme
-    assert "reviews the current session for reusable improvements to canonical skills" in readme
+    assert "reviews the current session for reusable improvements to canonical skills when explicitly invoked" in readme
     assert "prepares sanitized learning proposals" not in readme
     assert "agent-side" in readme
     assert "explicit manual" in readme
     assert "not the post-solve review path" in readme
     assert "learn --propose" in readme and "learn --promote" in readme
+
+
+def test_live_workflow_references_use_renamed_skill_ids(repo_root: Path):
+    paths = [
+        repo_root / "README.md",
+        repo_root / "rules" / "ctf-execution-rules.md",
+        repo_root / "rules" / "flag-validation-rules.md",
+        repo_root / "references" / "exploit-databases.md",
+        repo_root / "references" / "security-events-and-intelligence.md",
+        repo_root / "skills" / SKILL_NAME / "SKILL.md",
+    ]
+    content = "\n".join(path.read_text(encoding="utf-8") for path in paths)
+
+    assert "skills/ctf-solve-challenge/" in content
+    assert "skills/ctf-solve-report/" in content
+    assert "skills/solve-challenge/" not in content
+    assert "skills/ctf-writeup/" not in content
+    assert "return to `ctf-solve-challenge`" in content
 
 
 def test_retrospective_output_has_evidence_gap_decision_and_approval_sections(repo_root: Path):

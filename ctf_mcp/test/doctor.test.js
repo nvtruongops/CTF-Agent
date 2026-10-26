@@ -22,9 +22,40 @@ const ok = (stdout = '') => ({
 });
 
 function fakeWsl({ listOutput, userExists = false, uid = '1001', groups = '', missing = [] }) {
-  return async (args) => {
+  const calls = [];
+  const runWsl = async (args, options = {}) => {
+    calls.push(args);
     if (args[0] === '--status') return ok('Default Version: 2\n');
     if (args[0] === '--list' && args[1] === '--verbose') return ok(listOutput);
+
+    if (args.includes('python3') && args.includes('-c')) {
+      const request = JSON.parse(options.input);
+      const isRoot = args.includes('root');
+      const results = request.probes.map((probe) => {
+        if (probe.id === 'account.uid') {
+          return userExists
+            ? { id: probe.id, exitCode: 0, stdoutBase64: Buffer.from(`${uid}\n`).toString('base64'), stderrBase64: '', timedOut: false, truncated: false }
+            : { id: probe.id, exitCode: 1, stdoutBase64: '', stderrBase64: Buffer.from('no such user').toString('base64'), timedOut: false, truncated: false };
+        }
+        if (probe.id === 'account.groups') {
+          return { id: probe.id, exitCode: userExists ? 0 : 1, stdoutBase64: Buffer.from(`${groups}\n`).toString('base64'), stderrBase64: '', timedOut: false, truncated: false };
+        }
+        const executable = probe.argv[0];
+        const missingExecutable = missing.includes(executable);
+        const stdout = executable === 'python3'
+          ? 'Python 3.14.7\n'
+          : (executable === 'nmap' ? 'Nmap version 7.99\n' : `${executable} version 1.0\n`);
+        return {
+          id: probe.id,
+          exitCode: missingExecutable ? 127 : 0,
+          stdoutBase64: Buffer.from(missingExecutable ? '' : stdout).toString('base64'),
+          stderrBase64: Buffer.from(missingExecutable ? 'not found' : '').toString('base64'),
+          timedOut: false,
+          truncated: false,
+        };
+      });
+      return ok(JSON.stringify({ results, root: isRoot }));
+    }
 
     if (args.includes('id') && args.includes('-u')) {
       return userExists ? ok(`${uid}\n`) : { ...ok(''), exitCode: 1, stderr: 'no such user' };
@@ -38,7 +69,64 @@ function fakeWsl({ listOutput, userExists = false, uid = '1001', groups = '', mi
     if (executable === 'hydra') return ok('Hydra version 9.7\n');
     throw new Error(`Unexpected WSL probe: ${args.join(' ')}`);
   };
+  runWsl.calls = calls;
+  return runWsl;
 }
+
+test('doctor batches account and executable probes without changing readiness results', async () => {
+  const listOutput = 'NAME                    STATE           VERSION\n  kali-linux              Stopped         2\n';
+  const readyManifest = {
+    baseExecutables: ['python3'],
+    categories: [{
+      id: 'reverse',
+      tools: [{ id: 'inspect', executable: 'readelf', requiredExecutables: ['strings'] }],
+    }],
+  };
+  const readyWsl = fakeWsl({ listOutput, userExists: true, groups: 'ctfagent' });
+  const ready = await doctor({ runWsl: readyWsl, manifest: readyManifest, nodeVersion: '24.19.0' });
+
+  assert.equal(ready.healthy, true);
+  assert.deepEqual(ready.baseExecutables, [{ id: 'python3', status: 'ready', version: 'Python 3.14.7', detail: null }]);
+  assert.equal(ready.categories[0].tools[0].status, 'ready');
+  assert.equal(readyWsl.calls.length, 4);
+
+  const optionalManifest = {
+    categories: [{ id: 'exploitation', tools: [{
+      id: 'hydra', executable: 'hydra', optionalProfile: 'exploitation',
+    }] }],
+  };
+  const optionalWsl = fakeWsl({ listOutput, userExists: true, groups: 'ctfagent', missing: ['hydra'] });
+  const optional = await doctor({ runWsl: optionalWsl, manifest: optionalManifest, nodeVersion: '24.19.0' });
+
+  assert.equal(optional.healthy, true);
+  assert.equal(optional.categories[0].tools[0].status, 'missing_dependency');
+  assert.equal(optionalWsl.calls.length, 4);
+
+  const missingAccountWsl = fakeWsl({ listOutput });
+  const missingAccount = await doctor({ runWsl: missingAccountWsl, manifest: readyManifest, nodeVersion: '24.19.0' });
+
+  assert.equal(missingAccount.account.status, 'missing');
+  assert.equal(missingAccount.baseExecutables[0].status, 'blocked');
+  assert.equal(missingAccount.categories[0].tools[0].status, 'blocked');
+  assert.equal(missingAccountWsl.calls.length, 3);
+});
+
+test('doctor does not mark worker transport failures ready', async () => {
+  const runWsl = async (args) => {
+    if (args[0] === '--status') return ok('Default Version: 2\n');
+    if (args[0] === '--list') return ok('NAME                    STATE           VERSION\n  kali-linux              Running         2\n');
+    return { ...ok('{"error":"worker unavailable"}'), exitCode: 1, stderr: 'worker unavailable' };
+  };
+  const result = await doctor({
+    runWsl,
+    manifest: { baseExecutables: ['python3'], categories: [] },
+    nodeVersion: '24.19.0',
+  });
+
+  assert.equal(result.healthy, false);
+  assert.equal(result.account.status, 'missing');
+  assert.equal(result.baseExecutables[0].status, 'blocked');
+});
 
 test('doctor reports Kali and its tools missing when WSL has only Docker Desktop', async () => {
   const result = await doctor({
@@ -184,17 +272,28 @@ test('doctor is healthy without REA configuration and does not report REA state'
 
 test('doctor requires every auxiliary executable used by a multi-command tool', async () => {
   const result = await doctor({
-    runWsl: async (args) => {
+    runWsl: async (args, options = {}) => {
       if (args[0] === '--status') return ok('Default Version: 2\n');
       if (args[0] === '--list' && args[1] === '--verbose') {
         return ok('NAME                    STATE           VERSION\n'
           + '  kali-linux              Stopped         2\n');
       }
-      if (args.includes('id') && args.includes('-u')) return ok('1001\n');
-      if (args.includes('id') && args.includes('-nG')) return ok('ctfagent\n');
-      const executable = args.at(-2);
-      if (executable === 'strings') return { ...ok(''), exitCode: 127, stderr: 'not found' };
-      return ok(`${executable} version 1.0\n`);
+      const { probes } = JSON.parse(options.input);
+      const results = probes.map((probe) => {
+        if (probe.id === 'account.uid') return { id: probe.id, exitCode: 0, stdoutBase64: Buffer.from('1001\n').toString('base64'), stderrBase64: '', timedOut: false, truncated: false };
+        if (probe.id === 'account.groups') return { id: probe.id, exitCode: 0, stdoutBase64: Buffer.from('ctfagent\n').toString('base64'), stderrBase64: '', timedOut: false, truncated: false };
+        const executable = probe.argv[0];
+        const missing = executable === 'strings';
+        return {
+          id: probe.id,
+          exitCode: missing ? 127 : 0,
+          stdoutBase64: Buffer.from(missing ? '' : `${executable} version 1.0\n`).toString('base64'),
+          stderrBase64: Buffer.from(missing ? 'not found' : '').toString('base64'),
+          timedOut: false,
+          truncated: false,
+        };
+      });
+      return ok(JSON.stringify({ results }));
     },
     manifest: {
       categories: [{

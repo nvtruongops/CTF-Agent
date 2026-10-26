@@ -46,6 +46,7 @@ Tool availability depends on the host environment:
 
 ## When to Pivot
 
+- **Programming puzzles (PPC)**: `ctf-misc` is a best-effort fallback, not a dedicated PPC specialist. Extract the input/output contract and constraints, estimate the required time and memory complexity, then choose the simplest fitting algorithm and data representation. Run the supplied samples locally and add boundary cases before trying an authorized interactive instance; for prompts, script one bounded exchange at a time and cap retries/time. Route cryptographic primitives to `ctf-crypto`, web protocols to `ctf-web`, and restricted-eval or shell challenges to the pyjail guidance in this skill.
 - If the puzzle is actually centered on cryptography or number theory, switch to `ctf-crypto`.
 - If the challenge is a real binary exploit instead of a jail, toy VM, or encoding problem, switch to `ctf-pwn` or `ctf-reverse`.
 - If the input is mostly files, images, audio, or packet captures that need recovery work first, switch to `ctf-forensics`.

@@ -7,7 +7,7 @@ const rootUrl = new URL('../../', import.meta.url);
 const expectedCases = {
   'flag-provenance': {
     policy: 'flag-provenance',
-    guidance: ['.agents/skills/ctf-writeup/SKILL.md'],
+    guidance: ['.agents/skills/ctf-solve-report/SKILL.md'],
   },
   'generic-low-cost': {
     policy: 'low-cost-first',
@@ -15,13 +15,13 @@ const expectedCases = {
   },
   'hint-first': {
     policy: 'hint-first',
-    guidance: ['.agents/skills/solve-challenge/SKILL.md'],
+    guidance: ['.agents/skills/ctf-solve-challenge/SKILL.md'],
   },
   'no-progress-stop': {
     policy: 'no-progress-stop',
     guidance: [
       '.agents/references/ctf-triage-ladder.md',
-      '.agents/skills/solve-challenge/SKILL.md',
+      '.agents/skills/ctf-solve-challenge/SKILL.md',
     ],
   },
   'scope-refusal': {
@@ -51,7 +51,7 @@ test('offline behavior scenarios have unique IDs and case-specific policy guidan
 
 test('triage guidance requires new evidence before escalation or pivot', () => {
   const ladder = readFileSync(new URL('../../.agents/references/ctf-triage-ladder.md', import.meta.url), 'utf8');
-  const router = readFileSync(new URL('../../.agents/skills/solve-challenge/SKILL.md', import.meta.url), 'utf8');
+  const router = readFileSync(new URL('../../.agents/skills/ctf-solve-challenge/SKILL.md', import.meta.url), 'utf8');
   assert.match(ladder.toLowerCase(), /two consecutive attempts/);
   assert.match(ladder.toLowerCase(), /new relevant evidence/);
   assert.match(ladder.toLowerCase(), /escalate only when a recorded observation supports the next tier/);
@@ -68,9 +68,12 @@ test('tool guidance treats truncated output as incomplete evidence', () => {
 });
 
 test('write-up guidance requires evidence provenance and direct flag verification', () => {
-  const writeup = readFileSync(new URL('../../.agents/skills/ctf-writeup/SKILL.md', import.meta.url), 'utf8');
+  const writeup = readFileSync(new URL('../../.agents/skills/ctf-solve-report/SKILL.md', import.meta.url), 'utf8');
   assert.match(writeup, /Evidence & Reproducibility/);
   assert.match(writeup, /SHA-256/);
   assert.match(writeup.toLowerCase(), /tool\/mcp operation and version/);
   assert.match(writeup.toLowerCase(), /directly verified/);
+  assert.match(writeup.toLowerCase(), /supplied challenge folder/);
+  assert.match(writeup.toLowerCase(), /if `writeup.md` already exists, ask before writing/);
+  assert.match(writeup.toLowerCase(), /do not move, delete, or reorganize challenge files/);
 });

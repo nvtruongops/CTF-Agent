@@ -24,13 +24,13 @@ export function createServer({
   server.registerTool(
     'ctf_mcp_health',
     {
-      description: 'Return the identity and readiness of the CTF-Agent MCP server.',
+      description: 'Return the identity and liveness of the CTF-Agent MCP server.',
       inputSchema: z.object({}),
     },
     async () => ({
       content: [{
         type: 'text',
-        text: JSON.stringify({ name: 'ctf-agent', status: 'ready', version: '0.1.0' }),
+        text: JSON.stringify({ name: 'ctf-agent', status: 'alive', version: '0.1.0' }),
       }],
     }),
   );

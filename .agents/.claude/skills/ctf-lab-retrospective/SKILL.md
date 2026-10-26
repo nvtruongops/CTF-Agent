@@ -1,6 +1,7 @@
 ---
 name: ctf-lab-retrospective
-description: Use when a verified flag has been reported in an authorized deep/lab CTF, or when the user explicitly requests a post-solve retrospective after Blitz.
+description: Reviews reusable lessons after a reported result; run only when explicitly invoked.
+disable-model-invocation: true
 license: MIT
 ---
 

@@ -11,15 +11,10 @@ Every candidate flag string discovered during CTF competitions or security labs 
    - The flag must originate directly from verifiable command output (e.g., HTTP response, shell command execution, memory dump extraction, or script execution output).
    - Never extrapolate, guess, or synthesize truncated flag endings.
 3. **Reproducibility Check**:
-   - The automated `solve.py` script must run independently and output the verified flag string from scratch.
+   - If a `solve.py` is requested or included, run it independently and confirm it outputs the verified flag string.
    - If integrated with a CTFd platform, submit through the competition page when requested and report its response accurately.
 
-### 2. Workspace Cleanliness & Mode-Aware Reporting Standard
-- Do NOT create standalone `flag.txt` files in the repository root.
-- **In Blitz Mode (`--blitz`, `@ctf-speedrun`)**:
-- Print the verified flag directly in the high-visibility banner.
-  - Do NOT generate `writeup.md`.
-- Preserve challenge and scratch files unless the user asks for cleanup.
-- **In Deep Analysis Mode (`--deep`, `@ctf-analyzer`)**:
-  - Document the validated flag in the YAML frontmatter and designated flag section of `writeup.md` following the `ctf-writeup` skill standard.
-  - Enforce clean workspace structure: `writeup.md`, `solve.py`, and `resources/`.
+### 2. Flag-First Reporting
+- Report the verified flag and its direct evidence before documentation.
+- After reporting, invoke `ctf-solve-report` to write `writeup.md` in the supplied challenge folder; it asks before overwriting an existing report and does not move or delete challenge files.
+- Do not invoke `ctf-lab-retrospective` unless the user explicitly requests it.

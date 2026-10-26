@@ -154,24 +154,15 @@ def test_agents_content_layer_has_no_runtime_or_packaging_artifacts(repo_root: P
         assert not (repo_root / relative).exists(), f"Runtime or packaging artifact remains: {relative}"
 
 
-def test_root_mcp_package_and_opencode_registration_are_present(repo_root: Path):
+def test_root_mcp_package_is_present_without_project_opencode_config(repo_root: Path):
     project_root = repo_root.parent
     package = json.loads((project_root / "package.json").read_text(encoding="utf-8"))
-    assert package["name"] == "ctf-agent-mcp"
+    assert package["name"] in ("ctf-agent", "ctf-agent-mcp", "@nvtruongops/ctf-agent-mcp")
     assert package["engines"]["node"] == ">=24.11"
     assert (project_root / "ctf_mcp" / "server.js").is_file()
     assert (project_root / "ctf_mcp" / "tool-manifest.json").is_file()
 
-    config = json.loads((project_root / "opencode.jsonc").read_text(encoding="utf-8"))
-    assert set(config["mcp"]) == {"servers"}
-    servers = config["mcp"]["servers"]
-    assert set(servers) == {"ctf-agent"}
-    server = servers["ctf-agent"]
-    assert server["type"] == "local"
-    assert server["command"] == ["node", "ctf_mcp/cli.js", "mcp"]
-    assert server["cwd"] == "."
-    assert "enabled" not in server and "disabled" not in server
-    assert server["timeout"]["execution"] == 300000
+    assert not (project_root / "opencode.jsonc").exists()
 
 
 def test_tests_are_not_ignored(repo_root: Path):
@@ -183,7 +174,7 @@ def test_ctf_category_enums_match_specialist_categories(repo_root: Path):
     enum_files = [
         repo_root / "rules" / "ctf-safety-framing-rules.md",
         repo_root / "references" / "multi-agent-orchestration-and-policy-routing.md",
-        repo_root / "skills" / "ctf-writeup" / "SKILL.md",
+        repo_root / "skills" / "ctf-solve-report" / "SKILL.md",
         repo_root / "references" / "exploit-databases.md",
     ]
 
@@ -199,7 +190,7 @@ def test_ctf_category_enums_match_specialist_categories(repo_root: Path):
 
 
 def test_solver_router_covers_all_specialist_categories(repo_root: Path):
-    router = (repo_root / "skills" / "solve-challenge" / "SKILL.md").read_text(encoding="utf-8")
+    router = (repo_root / "skills" / "ctf-solve-challenge" / "SKILL.md").read_text(encoding="utf-8")
     category_rows = markdown_table_rows(router, "| Category | Skill | When to Use |")
     routes = {row[0]: row[1].strip("`") for row in category_rows}
 
@@ -215,7 +206,7 @@ def test_solver_router_covers_all_specialist_categories(repo_root: Path):
 
 
 def test_solver_router_documents_parent_routes_and_ppc_limit(repo_root: Path):
-    router = (repo_root / "skills" / "solve-challenge" / "SKILL.md").read_text(encoding="utf-8")
+    router = (repo_root / "skills" / "ctf-solve-challenge" / "SKILL.md").read_text(encoding="utf-8")
     rows = markdown_table_rows(router, "| Topic | Default route | Conditional route / limit |")
     routes = {}
     for topic, default_route, conditional_route in rows:
@@ -231,5 +222,80 @@ def test_solver_router_documents_parent_routes_and_ppc_limit(repo_root: Path):
         "Mobile reversing": ("ctf-reverse", set()),
         "PPC / programming puzzles": ("ctf-misc", set()),
     }
+    ppc_default = next(row[1] for row in rows if row[0] == "PPC / programming puzzles")
     ppc_limit = next(row[2] for row in rows if row[0] == "PPC / programming puzzles")
     assert "no dedicated ppc skill exists" in ppc_limit.lower()
+    assert "best-effort fallback" in ppc_default.lower()
+
+
+def test_misc_documents_a_bounded_ppc_fallback_workflow(repo_root: Path):
+    misc = (repo_root / "skills" / "ctf-misc" / "SKILL.md").read_text(encoding="utf-8").lower()
+    assert "programming puzzles (ppc)" in misc
+    for requirement in ("input/output", "constraints", "complexity", "sample", "interactive"):
+        assert requirement in misc
+    assert "ctf-crypto" in misc
+    assert "ctf-web" in misc
+    assert "pyjail" in misc
+
+
+def test_apk_routes_to_static_reverse_guidance_not_an_mcp_package_tool(repo_root: Path):
+    router = (repo_root / "skills" / "ctf-solve-challenge" / "SKILL.md").read_text(encoding="utf-8").lower()
+    reverse = (repo_root / "skills" / "ctf-reverse" / "SKILL.md").read_text(encoding="utf-8").lower()
+    tool_map = (repo_root / "references" / "ctf-mcp-tool-map.md").read_text(encoding="utf-8").lower()
+
+    apk_route = next(line for line in router.splitlines() if ".apk" in line)
+    reverse_row = next(line for line in tool_map.splitlines() if "ctf_reverse_inspect" in line)
+    assert "reverse" in apk_route
+    assert "## android apk/dex" in reverse
+    assert "preserve the original" in reverse
+    assert "manifest" in reverse and "dex" in reverse and "native librar" in reverse
+    assert "do not provide broad decompilation or apk/package analysis" in reverse
+    assert "linux/elf" in reverse_row
+    assert "apk" not in reverse_row and "package analysis" not in reverse_row
+
+
+def test_web3_guidance_defaults_to_local_analysis_and_scopes_remote_activity(repo_root: Path):
+    web3 = (repo_root / "skills" / "ctf-web" / "web3.md").read_text(encoding="utf-8").lower()
+    assert "local/static analysis is the default" in web3
+    assert "abi" in web3 and "calldata" in web3 and "bytecode" in web3
+    assert "authorized challenge instance" in web3
+    for unsafe_default in ("sepolia", "publicnode", "--private-key", "private_key", "--broadcast"):
+        assert unsafe_default not in web3
+
+
+def test_competition_mode_triage_requires_rules_and_does_not_expand_scope(repo_root: Path):
+    router = (repo_root / "skills" / "ctf-solve-challenge" / "SKILL.md").read_text(encoding="utf-8").lower()
+    assert "jeopardy" in router and "attack-defense" in router
+    assert "king of the hill" in router and "livectf" in router
+    assert "read the official event rules" in router
+    assert "organizer-defined scope" in router
+    assert "mode classification is context only" in router
+    assert "does not authorize scanning, attacking, persistence, or automation" in router
+    assert "does not skip hint-first analysis" in router
+    assert "version matrix" in router
+
+
+def test_ai_and_malware_routes_stay_guidance_only_not_mcp_tools(repo_root: Path):
+    router = (repo_root / "skills" / "ctf-solve-challenge" / "SKILL.md").read_text(encoding="utf-8").lower()
+    tool_map = (repo_root / "references" / "ctf-mcp-tool-map.md").read_text(encoding="utf-8").lower()
+    malware = (repo_root / "skills" / "ctf-malware" / "SKILL.md").read_text(encoding="utf-8").lower()
+    ai_ml = (repo_root / "skills" / "ctf-ai-ml" / "SKILL.md").read_text(encoding="utf-8").lower()
+
+    assert any('"llm prompt injection"' in line and "-> ai-ml" in line for line in router.splitlines())
+    assert any('"obfuscated"' in line and "-> malware" in line for line in router.splitlines())
+    assert "ctf_ai_ml" not in tool_map and "ctf_malware" not in tool_map
+    assert "dynamic analysis (sandboxed!)" not in malware
+    assert "wsl and the non-sudo `ctfagent` user are not a security sandbox" in malware
+    assert "sandboxed environments" not in ai_ml.splitlines()[2]
+
+
+def test_event_examples_and_safety_rules_do_not_overstate_taxonomy_or_isolation(repo_root: Path):
+    events = (repo_root / "references" / "security-events-and-intelligence.md").read_text(encoding="utf-8").lower()
+    safety = (repo_root / "rules" / "ctf-safety-framing-rules.md").read_text(encoding="utf-8").lower()
+    execution = (repo_root / "rules" / "ctf-execution-rules.md").read_text(encoding="utf-8").lower()
+
+    assert "not a representative sample, prevalence estimate, or universal category taxonomy" in events
+    assert "def con 28 safe mode ctf" in events and "do not generalize either description" in events
+    assert "strictly sandboxed targets" not in safety
+    assert "wsl, a linux user, localhost, `/tmp/`, and a declared scope do not by themselves provide security isolation" in safety
+    assert "preserve organizer-provided binaries" in execution

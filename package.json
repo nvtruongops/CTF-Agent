@@ -1,22 +1,54 @@
 {
   "$schema": "https://json.schemastore.org/package",
-  "name": "ctf-agent-mcp",
+  "name": "ctf-agent",
   "version": "0.1.0",
-  "private": true,
+  "license": "MIT",
+  "author": "nvtruongops",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nvtruongops/CTF-Agent.git"
+  },
+  "bugs": {
+    "url": "https://github.com/nvtruongops/CTF-Agent/issues"
+  },
+  "homepage": "https://github.com/nvtruongops/CTF-Agent#readme",
+  "keywords": [
+    "ctf",
+    "mcp",
+    "security",
+    "agent",
+    "reverse-engineering",
+    "pwn",
+    "forensics",
+    "web-security"
+  ],
   "description": "Scoped CTF MCP tools for authorized challenges and labs",
   "type": "module",
   "engines": {
     "node": ">=24.11"
   },
   "bin": {
-    "ctf-agent": "./ctf_mcp/cli.js"
+    "ctf-agent": "ctf_mcp/cli.js"
   },
   "scripts": {
     "ctf-agent": "node ctf_mcp/cli.js",
-    "test": "node --test ctf_mcp/test/*.test.js"
+    "test": "node --test ctf_mcp/test/*.test.js",
+    "prepack": "node scripts/package-audit.js",
+    "prepublishOnly": "npm test && node scripts/package-audit.js"
   },
+  "files": [
+    "ctf_mcp/*.js",
+    "ctf_mcp/tool-manifest.json",
+    "ctf_mcp/tools/*.js",
+    "ctf_mcp/tools/*.py",
+    ".agents/skills/**/*.md",
+    ".agents/references/**/*.md",
+    ".agents/rules/**/*.md"
+  ],
   "dependencies": {
     "@modelcontextprotocol/server": "2.3.1",
+    "jsonc-parser": "^3.3.1",
+    "smol-toml": "^1.9.1",
     "zod": "4.6.7"
   },
   "devDependencies": {

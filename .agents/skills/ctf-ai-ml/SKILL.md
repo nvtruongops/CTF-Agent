@@ -1,6 +1,6 @@
 ---
 name: ctf-ai-ml
-description: Provides AI and machine learning analysis techniques for educational CTF challenges and safety benchmarks. Use when evaluating ML model robustness, testing adversarial examples, performing model extraction analysis, prompt security evaluation, membership inference testing, data integrity verification, neural network inspection, LoRA adapter analysis, or solving AI security puzzles in sandboxed environments.
+description: Provides AI and machine learning analysis techniques for educational CTF challenges and safety benchmarks. Use when evaluating ML model robustness, testing adversarial examples, performing model extraction analysis, prompt security evaluation, membership inference testing, data integrity verification, neural network inspection, LoRA adapter analysis, or solving AI security puzzles in CTF/lab environments.
 license: MIT
 ---
 

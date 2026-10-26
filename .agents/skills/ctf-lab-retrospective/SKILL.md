@@ -1,6 +1,7 @@
 ---
 name: ctf-lab-retrospective
-description: Use when a verified flag has been reported in an authorized deep/lab CTF, or when the user explicitly requests a post-solve retrospective after Blitz.
+description: Reviews reusable lessons after a reported result; run only when explicitly invoked.
+disable-model-invocation: true
 license: MIT
 ---
 
@@ -10,9 +11,9 @@ After the verified result is reported, review whether the completed session supp
 
 ## Trigger
 
-- For deep/lab mode, run after the verified result has been reported. Run even when the conclusion is that there is no reusable lesson.
-- Blitz skips this retrospective unless the user explicitly asks; if asked, run only after reporting the verified flag and without resuming challenge probing.
-- If the result is not verified or not yet reported, return to `solve-challenge`; do not let learning delay the flag report.
+- Run only when the user explicitly invokes this skill or clearly requests a retrospective. A deep/lab solve or a reported flag alone never triggers it.
+- For any mode, run only after the verified result has been reported and without resuming challenge probing. If the user requests review before then, return to `ctf-solve-challenge` so flag verification and reporting stay first.
+- If the result is not verified or not yet reported, return to `ctf-solve-challenge`; do not let learning delay the flag report.
 
 ## Review the current session
 

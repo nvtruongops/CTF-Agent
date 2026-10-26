@@ -72,20 +72,22 @@ Major CTF challenges frequently adapt attack techniques and root causes presente
 - **WOOT (Workshop on Offensive Technologies) & RAID**:
   - Specializes in unconventional offensive primitives, hardware glitches, and exploit generation methodologies.
 
-### 2.4. Premier CTF Competitions
-- **DEF CON CTF (Quals & Finals)**: The benchmark for elite binary exploitation, zero-day research, and custom architectures.
-- **Real World CTF**: Focuses exclusively on exploiting real-world open-source software, virtualization engines, and network appliances.
-- **Google CTF, PlaidCTF, SekaiCTF, DiceCTF**: Known for cutting-edge web desync, novel cryptography, and sandbox breakouts.
+### 2.4. CTF Examples (Not a Prevalence Ranking)
+
+The following events are examples for challenge-lineage research, not a representative sample, prevalence estimate, or universal category taxonomy. Treat format and rules as edition-specific and consult that event's official materials before acting.
+
+- **DEF CON CTF**: An example of a long-running competition. Its format can differ by stage or edition: CTFtime describes DEF CON CTF quals as a Jeopardy-style example, while the official [DEF CON 28 Safe Mode CTF page](https://defcon.org/html/defcon-safemode/dc-safemode-ctf.html) describes its finals as live attack/defense. Do not generalize either description to every DEF CON CTF event.
+- **Real World CTF, Google CTF, PlaidCTF, SekaiCTF, DiceCTF**: Example event names to use when searching public challenge archives and writeups; their inclusion here makes no claim about the frequency of any challenge category.
 
 ---
 
-## 3. CTF Event Intelligence (CTFtime & Competition Architectures)
+## 3. CTF Event Listings and Common Format Examples
 
-CTFtime (`https://ctftime.org/`) serves as the global coordination and telemetry platform for security competitions.
+CTFtime lists events, archives, writeups, and team rankings. Its [event listings](https://ctftime.org/event/list/) display a format for each entry, and its [CTF overview](https://ctftime.org/ctf-wtf) describes Jeopardy, Attack-Defence, and mixed as common types. These are useful discovery labels, not prevalence data or a substitute for the organizer's rules; formats and permitted actions vary by event.
 
 ```
 ┌────────────────────────────────────────────────────────────────────────────────────────┐
-│  CTFTIME EVENT INTELLIGENCE TAXONOMY                                                   │
+│  CTFtime LISTING EXAMPLES (NOT AN EXHAUSTIVE TAXONOMY)                                  │
 ├──────────────────────────┬──────────────────────────┬──────────────────────────────────┤
 │ Lifecycle States         │ Competition Formats      │ Participation Constraints        │
 ├──────────────────────────┼──────────────────────────┼──────────────────────────────────┤
@@ -95,20 +97,14 @@ CTFtime (`https://ctftime.org/`) serves as the global coordination and telemetry
 └──────────────────────────┴──────────────────────────┴──────────────────────────────────┘
 ```
 
-### 3.1. Event Lifecycle & Format Classification
+### 3.1. Event Listing Fields and Format Examples
 1. **Event Lifecycle**:
-   - **Upcoming**: Track start times, registration URLs, and format rules.
-   - **Running**: Active competitions requiring real-time challenge ingestion, scoreboard tracking, and dynamic point monitoring.
-   - **Archived**: Historical repositories linking to writeups, challenge source repositories, and participant scoreboards.
+   - **Upcoming**: Listing entries may include dates, registration links, and a displayed format.
+   - **Running**: Use the event's authorized participant interface and rules; CTFtime's listing status alone does not establish what actions are permitted.
+   - **Archived**: Past-event listings can help locate event pages and associated public resources.
 2. **Competition Formats**:
-   - **Jeopardy**: Challenges are divided into discrete categories (Web, Pwn, Crypto, Reverse, Forensics, OSINT, Misc). Teams solve puzzles independently for static or dynamic decaying points.
-   - **Attack-Defense (A/D)**:
-     - Each team receives an identical virtual machine image hosting multiple vulnerable network services.
-     - Games proceed in timed rounds or "ticks" (typically 2–5 minutes).
-     - **Offense**: Exploit opponent services and extract periodic tick flags.
-     - **Defense**: Patch local service vulnerabilities without breaking Service Level Agreements (SLA check scripts verify service functionality).
-     - **Telemetry**: Teams analyze live network traffic (PCAP) to steal and adapt opponents' attack payloads.
-   - **Hack-quest / King of the Hill (KotH)**: Sequential penetration testing labs or competitive persistent control over shared target infrastructure.
+   - CTFtime's overview gives Jeopardy, Attack-Defence, and mixed as common formats. Its event listings also use labels such as Hack-quest. These are broad examples; the label does not specify a particular event's topology, scoring, target scope, timing, or allowed tools.
+   - King of the Hill and LiveCTF may also be organizer-defined competition modes. Do not infer their rules from a label; read the current event's official rules.
 
 ### 3.2. Dynamic Top Teams & Community Tracking
 To maintain an up-to-date knowledge base, do not rely on static hardcoded lists. Monitor teams and researchers dynamically through:
@@ -323,7 +319,7 @@ In specialized cloud security CTFs (e.g., Cloud Village, HTB Cloud Labs):
 
 Upon solving a challenge, extract and structure operational intelligence to benefit future engagements:
 - **Challenge Taxonomy Tagging**: Categorize by framework (e.g., Next.js, glibc 2.39, Flask), vulnerability class (e.g., Prototype Pollution, FSOP), and difficulty.
-- **Searchable Writeup Archive**: Maintain writeups following the `skills/ctf-writeup/SKILL.md` standard.
+- **Searchable Writeup Archive**: Maintain writeups following the `skills/ctf-solve-report/SKILL.md` standard.
 - **Correlating External Writeups**: When blocked during training, search CTFtime and GitHub using exact error strings and function names to analyze approaches taken by top teams.
 
 ---

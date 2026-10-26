@@ -60,6 +60,7 @@ test('initScope writes one local scope under the challenge workspace and refuses
 
     assert.ok(scope);
     assert.equal(scope.challengeId, 'web-2026-01');
+    assert.equal(scope.wslWorkspace, '/home/ctfagent/ctf-workspaces/web-2026-01');
     assert.equal(scope.targets[0].host, 'challenge.example');
     assert.equal(scope.targets[0].port, 8080);
     assert.equal(existsSync(join(projectRoot, '.ctf-agent', 'scope.json')), true);

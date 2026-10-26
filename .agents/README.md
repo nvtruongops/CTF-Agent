@@ -17,7 +17,7 @@ When this folder is used from the parent CTF-Agent repository, the root also con
 
 ## Contents
 
-- `skills/` — category and orchestration skills. Each starts at `SKILL.md` and may link to supporting notes in the same directory. `skills/ctf-lab-retrospective/` reviews the current session for reusable improvements to canonical skills after a reported deep/lab result; Blitz skips it unless requested.
+- `skills/` — category and workflow skills. `skills/ctf-solve-challenge/` prioritizes the first verified flag, then invokes `skills/ctf-solve-report/` to write actual solve steps in the supplied challenge folder. `skills/ctf-lab-retrospective/` reviews the current session for reusable improvements to canonical skills when explicitly invoked after a reported result.
 - `.claude/skills/` — small Claude Code discovery entries that point to the canonical skills; edit the files under `skills/` for workflow changes.
 - `skill-tree/` — manual learning proposals and explicitly approved patterns for the optional parent-repository CTF MCP runtime; normal solving and post-solve review do not consult it.
 - `agents/` — optional controller, speedrun, and analyzer personas.
@@ -29,7 +29,7 @@ The `.agents/` folder itself contains guidance only. The parent CTF-Agent reposi
 
 ## Optional learning workflow
 
-Post-solve review is agent-side: after reporting a verified result, `ctf-lab-retrospective` compares the current session with only the relevant canonical topic skill and linked references. It presents no update or an exact proposed diff and waits for explicit approval before any canonical skill edit; it does not create per-lab records. The optional parent-repository CTF MCP keeps `ctf-agent learn --propose`, `ctf-agent learn --list`, `ctf-agent learn --show`, and `ctf-agent learn --promote` for explicit manual operations only. That CLI is not the post-solve review path and is not consulted during normal challenge routing.
+Agent-side post-solve review is opt-in: `ctf-lab-retrospective` runs only when the user explicitly invokes it or clearly requests a retrospective, and only after reporting a verified result. It compares the current session with only the relevant canonical topic skill and linked references. It presents no update or an exact proposed diff and waits for explicit approval before any canonical skill edit; it does not create per-lab records. The optional parent-repository CTF MCP keeps `ctf-agent learn --propose`, `ctf-agent learn --list`, `ctf-agent learn --show`, and `ctf-agent learn --promote` for explicit manual operations only. That CLI is not the post-solve review path and is not consulted during normal challenge routing.
 
 ## Scope
 

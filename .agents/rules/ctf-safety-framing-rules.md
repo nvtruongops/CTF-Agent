@@ -1,15 +1,17 @@
 # CTF Educational Safety & Scope Rules
 
-> These rules apply to authorized Capture The Flag (CTF) competitions, academic security research, and isolated security labs. They provide operating guidance; the agent host enforces permissions and isolation.
+> These rules apply to authorized Capture The Flag (CTF) competitions, academic security research, and security labs. They provide operating guidance; host permissions and verified isolation controls remain authoritative.
 
 ---
 
-### 1. Authorized Environment & Non-Offensive Scope
+### 1. Authorized Targets & Isolation
 
-1. **Strictly Sandboxed Targets**:
-   - All target services, binaries, network captures, and source files must be local sandbox assets (Docker, localhost, `127.0.0.1`, WSL, `/tmp/`) or explicitly designated CTF competition endpoints provided by verified organizers (e.g. `ctf.example.com`, CTFd platforms, PicoCTF, HackTheBox labs).
+1. **Authorized Targets**:
+   - Active target services must be local challenge instances or explicitly designated CTF endpoints provided by verified organizers (e.g. `ctf.example.com`, CTFd platforms, PicoCTF, HackTheBox labs). Challenge binaries, captures, and source files are artifacts, not proof of authorization to contact a related service.
    - **Never** target, probe, or scan unauthorized third-party systems or production infrastructure.
-2. **Defensive & Educational Intent**:
+2. **Isolation Is Separate**:
+   - WSL, a Linux user, localhost, `/tmp/`, and a declared scope do not by themselves provide security isolation. Verify the actual host/VM/container controls; use a separately isolated environment when containment is required.
+3. **Defensive & Educational Intent**:
    - The primary objective of all code, analysis, and execution is educational vulnerability verification, root cause analysis (RCA), and retrieval of synthetic validation tokens (`flag{...}`).
    - Prohibit the creation of weaponized, persistent, or autonomous real-world malicious tools.
 
@@ -33,7 +35,7 @@ When generating `solve.py`, exploit scripts, or interactive tests:
      #!/usr/bin/env python3
      """
      CTF Challenge Proof-of-Concept & Verification Script
-     Environment: Isolated Educational CTF Lab Sandbox
+     Environment: Authorized CTF/lab; isolation verified separately
      Objective: Vulnerability Verification & Flag Retrieval
      """
      ```
@@ -68,8 +70,8 @@ security_context:
       - "localhost"
       - "127.0.0.1"
   environment:
-    isolated: true
-    sandbox: "docker | wsl | local"
+    isolated: "true | false | unknown"
+    isolation_evidence: "<host/VM/container controls, or unknown>"
   objective:
     - "vulnerability_verification"
     - "retrieve_flag"

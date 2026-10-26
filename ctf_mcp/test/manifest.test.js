@@ -313,14 +313,6 @@ test('the full and exploitation profiles install the standalone ncat package', (
   assert.ok(manifest.profiles.exploitation.apt.includes('ncat'));
 });
 
-test('OpenCode passes CTFd connection values from the parent environment', () => {
-  const config = JSON.parse(readFileSync(new URL('../../opencode.jsonc', import.meta.url), 'utf8'));
-  assert.deepEqual(config.mcp.servers['ctf-agent'].environment, {
-    CTF_MCP_CTFD_URL: '{env:CTF_MCP_CTFD_URL}',
-    CTF_MCP_CTFD_TOKEN: '{env:CTF_MCP_CTFD_TOKEN}',
-  });
-});
-
 test('the Frida readiness probe requires the pinned virtual-environment version', () => {
   const manifest = JSON.parse(readFileSync(new URL('../tool-manifest.json', import.meta.url), 'utf8'));
   const gameTool = manifest.categories

@@ -1,6 +1,6 @@
 ---
-name: solve-challenge
-description: Coordinates triage and solution workflows for authorized CTF competition challenges and educational security labs by identifying the dominant challenge category and routing execution to the right specialized ctf-* skill. Use when given an authorized CTF challenge bundle, isolated test service, or benchmark file.
+name: ctf-solve-challenge
+description: Use when solving an authorized CTF challenge or lab where reaching the first verified flag quickly is the priority.
 license: MIT
 ---
 
@@ -25,19 +25,13 @@ The `.agents/` collection provides guidance; the parent CTF-Agent repository may
 ### Step 0: Challenge Platform Context
 
 When a competition URL is supplied, use its authorized challenge page and published rules to identify challenge details, hints, attachments, and the submission process. Prefer the competition's normal web interface. Do not request or store platform credentials for routine challenge triage; submit a verified flag only when the user asks or the task clearly includes submission.
-### Step 0.5: Operational Mode Determination (Blitz vs Deep Analysis)
+### Step 0.5: Flag-First Objective
 
-Determine the operational profile before beginning exploitation:
+For every invocation, optimize for the fastest route to the first verified flag. Read the supplied hints, rules, and scope first; choose the cheapest bounded probe that can test the strongest hypothesis. Keep deeper root-cause analysis and extra challenge probing out of the solve path unless the user separately requests them. After fresh direct evidence verifies the flag, stop challenge probing and report it before any documentation work.
 
-1. **Blitz / Speedrun Mode (`--mode blitz`, `--fast`)**:
-   - **Trigger**: Active CTF competitions, time pressure, or prompts like "speedrun", "fast", "blitz", "find flag quickly".
-   - **Primary Objective**: Minimal Time-to-Flag (First Blood).
-   - **Behavioral Rule**: Fast triage, short timeouts, stop after a verified flag, preserve challenge files and scratch artifacts, and keep the response concise.
+### Step 0.55: Competition Format and Rules
 
-2. **Deep Analysis / Lab Mode (`--mode deep`, `--deep`, `--lab`)**:
-   - **Trigger**: Lab challenges (HTB, PortSwigger, pwnable.tw), security audits, research, or prompts like "deep analysis", "detailed writeup", "write docs", "root cause analysis".
-   - **Primary Objective**: Security rigor, exhaustive Root Cause Analysis (RCA), and publication-ready documentation.
-   - **Behavioral Rule**: Document the root cause, preserve original artifacts and work on copies, and create a reproducible writeup when requested.
+Before choosing competition actions, identify the format as Jeopardy, attack-defense, King of the Hill, or LiveCTF from the organizer's materials. Read the official event rules and record the event mode plus its organizer-defined scope, targets, permitted actions, and timing constraints; leave the format unknown if the rules do not establish it. Mode classification is context only: it does not authorize scanning, attacking, persistence, or automation beyond explicitly approved targets and rules. Continue routing by technical challenge category.
 
 ### Step 0.6: Task Envelope & Security Context Binding
 
@@ -70,14 +64,13 @@ Challenge authors intentionally embed directional cues to prevent players from g
 
 ### Step 2: Recon (File & Service Triage)
 
-1. **Explore files** -- List the challenge directory, run `file *` on everything
-2. **Triage binaries** -- `strings`, `xxd | head`, `binwalk`, `checksec` on binaries
-3. **Fetch links** -- If the challenge mentions URLs, fetch them FIRST for context
-4. **Connect** -- Try remote services (`nc`) to understand what they expect
-5. **Read hints** -- Challenge descriptions, filenames, and comments often contain clues
-6. **Vulnerability & Exploit Lookup** -- For a discovered product version or CVE, check the official CVE record, vendor advisory, CISA KEV, FIRST EPSS, and sources such as Sploitus or SearchSploit. Check CTFtime and event intelligence for challenge lineage.
+1. Follow the [CTF triage ladder](../../references/ctf-triage-ladder.md) when hints do not identify a strong first hypothesis; prefer the lowest-cost relevant check.
+2. Inspect only artifacts or service behavior that can test the current hypothesis; do not inventory or probe unrelated targets.
+3. Use external vulnerability or event lookup only when a discovered version or challenge fingerprint makes it likely to shorten the solve.
 
 ### Step 3: Categorize
+
+Topic routing selects a skill; it does not skip hint-first analysis or the progressive [CTF triage ladder](../../references/ctf-triage-ladder.md) for generic challenges. Before choosing a version-dependent technique, confirm the relevant environment details against the [version matrix](../../references/version-matrix.md).
 
 Determine the primary category, then invoke the matching skill.
 
@@ -158,22 +151,12 @@ Use this step after comparing the result of a bounded probe with the hypothesis 
 - Forensics + Signal Processing: power traces / side-channel analysis requiring statistical analysis of measurement data
 - Forensics + Network + Encoding: timing-based encoding in PCAP (inter-packet intervals encode binary data)
 
-### Step 6: Post-Exploitation & Completion (Mode-Dependent)
+### Step 6: Flag and Report
 
-#### Branch A: Blitz Mode (`--mode blitz` or `--fast`)
-When running in Blitz mode (active CTF competition):
-1. Stop further tool use once a candidate flag is verified.
-2. Report the exact flag and the direct output or response that established it.
-3. Do not create a writeup. Preserve challenge files and scratch artifacts unless the user asks for cleanup.
-4. Keep the response concise: verified flag, method, and submission status when applicable.
-5. Skip `ctf-lab-retrospective` unless the user explicitly asks; if asked, run it only after reporting and do not resume challenge probing.
-#### Branch B: Deep Analysis Mode (`--mode deep` or `--deep`)
-For labs, research, and practice:
-1. Preserve original artifacts; use copies for analysis.
-2. Load the `ctf-writeup` skill when a reproducible report is requested.
-3. Include a standalone `solve.py` only when useful to reproduce the result, and verify it from a fresh run.
-4. Report the first verified flag and its direct evidence before doing any retrospective.
-5. After reporting, invoke `ctf-lab-retrospective` for every deep/lab solve, including when there is no reusable lesson; in that case say “no proposed update” and write no file.
+1. When fresh direct evidence verifies the flag, stop all challenge probing. Stop challenge probing once the flag is verified.
+2. Report the exact flag and its direct verification evidence.
+3. After reporting, invoke `ctf-solve-report` to document the actual steps in the user-supplied challenge folder. If the folder is missing or ambiguous, ask for it; do not delay the flag report.
+4. Invoke `ctf-lab-retrospective` only when the user explicitly invokes it or clearly requests a retrospective, and only after the flag has been reported. Deep/lab mode alone never triggers it; solving or reporting a flag alone never triggers it.
 ## Flag Formats
 
 Flags vary by CTF. Common formats:

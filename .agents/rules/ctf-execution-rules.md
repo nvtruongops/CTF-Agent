@@ -15,5 +15,5 @@ Use hard timeouts for symbolic execution, SMT solving, lattice reduction, and br
 
 ## Operational Modes
 
-- **Blitz / Speedrun**: Stop after verifying a flag. Preserve challenge and scratch files unless the user asks for cleanup. Keep the response concise and skip writeups.
-- **Deep Analysis / Lab**: Document the root cause and evidence. Preserve original artifacts; organize copies when useful for a requested writeup. Use the ctf-writeup skill when a report is requested.
+- **All CTF/lab modes**: Prioritize the first verified flag; stop challenge probing once verified and report direct evidence immediately. Then invoke `ctf-solve-report` to write the actual solve steps in the user-supplied challenge folder. Preserve challenge files in place.
+- Run `ctf-lab-retrospective` only when the user explicitly invokes it or clearly requests it, and only after reporting the flag.

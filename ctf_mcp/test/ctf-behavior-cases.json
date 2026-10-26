@@ -5,7 +5,7 @@
       "id": "hint-first",
       "prompt": "The organizer hint names a repeated nonce.",
       "policy": "hint-first",
-      "guidance": [".agents/skills/solve-challenge/SKILL.md"]
+      "guidance": [".agents/skills/ctf-solve-challenge/SKILL.md"]
     },
     {
       "id": "generic-low-cost",
@@ -19,7 +19,7 @@
       "policy": "no-progress-stop",
       "guidance": [
         ".agents/references/ctf-triage-ladder.md",
-        ".agents/skills/solve-challenge/SKILL.md"
+        ".agents/skills/ctf-solve-challenge/SKILL.md"
       ]
     },
     {
@@ -38,7 +38,7 @@
       "id": "flag-provenance",
       "prompt": "A flag-like token appears in an artifact metadata field.",
       "policy": "flag-provenance",
-      "guidance": [".agents/skills/ctf-writeup/SKILL.md"]
+      "guidance": [".agents/skills/ctf-solve-report/SKILL.md"]
     }
   ]
 }

@@ -1,14 +1,15 @@
 # CTF Web - Web3 / Blockchain Challenges
 
 ## Table of Contents
+- [Scope and Default Workflow](#scope-and-default-workflow)
 - [Challenge Infrastructure Pattern](#challenge-infrastructure-pattern)
   - [Auth Implementation (Python)](#auth-implementation-python)
-- [EIP-1967 Proxy Pattern Exploitation](#eip-1967-proxy-pattern-exploitation)
+- [EIP-1967 Proxy Pattern Analysis](#eip-1967-proxy-pattern-analysis)
 - [ABI Coder v1 vs v2 - Dirty Address Bypass](#abi-coder-v1-vs-v2---dirty-address-bypass)
 - [Solidity CBOR Metadata Stripping for Codehash Bypass](#solidity-cbor-metadata-stripping-for-codehash-bypass)
 - [Non-Standard ABI Calldata Encoding](#non-standard-abi-calldata-encoding)
 - [Solidity bytes32 String Encoding](#solidity-bytes32-string-encoding)
-- [Complete Exploit Flow (House of Illusions)](#complete-exploit-flow-house-of-illusions)
+- [House of Illusions Analysis Flow](#house-of-illusions-analysis-flow)
 - [Delegatecall Storage Context Abuse (EHAX 2026)](#delegatecall-storage-context-abuse-ehax-2026)
 - [Groth16 Proof Forgery for Blockchain Governance (DiceCTF 2026)](#groth16-proof-forgery-for-blockchain-governance-dicectf-2026)
 - [Phantom Market Unresolve + Force-Funding (DiceCTF 2026)](#phantom-market-unresolve--force-funding-dicectf-2026)
@@ -18,12 +19,23 @@
 
 ---
 
+## Scope and Default Workflow
+
+**Local/static analysis is the default.** Preserve supplied artifacts and work from copies. Start with challenge-provided source, ABI, calldata, bytecode, logs, storage snapshots, or transaction data:
+
+1. Compare ABI function/event/error signatures with the provided source; decode selectors and arguments locally.
+2. For calldata, check the selector, offsets, lengths, padding, and bounds against the ABI and implementation.
+3. For bytecode without source, inspect the dispatcher, relevant call/storage instructions, and embedded metadata before inferring behavior.
+4. Use only chain data supplied with the challenge unless the organizer explicitly provides an in-scope instance and permits remote access.
+
+Remote RPC access or a transaction requires explicit authorization for that exact challenge instance and compliance with its rules. Use a disposable challenge account and instance; never use a regular wallet or treat a public chain as the default target. This guidance does not authorize activity or expand scope.
+
 ## Challenge Infrastructure Pattern
 
-1. **Auth**: GET `/api/auth/nonce` → sign with `personal_sign` → POST `/api/auth/login`
-2. **Instance creation**: Call `factory.createInstance()` on-chain (requires testnet ETH)
-3. **Exploit**: Interact with deployed instance contracts
-4. **Check**: GET `/api/challenges/check-solution` → returns flag if `isSolved()` is true
+1. **Auth**: Follow the organizer's instructions and use a disposable challenge account if one is required.
+2. **Instance**: Prefer a disposable local chain; use a remote instance only when its exact endpoint is explicitly in scope.
+3. **Analyze**: Reproduce the suspected behavior locally first, then interact only with the authorized instance if permitted.
+4. **Check**: Use the challenge's documented solution check; do not infer authorization from an endpoint's availability.
 
 ### Auth Implementation (Python)
 ```python
@@ -31,7 +43,8 @@ from eth_account import Account
 from eth_account.messages import encode_defunct
 import requests
 
-acct = Account.from_key(PRIVATE_KEY)
+BASE = 'http://127.0.0.1:3000'  # Local challenge web app; replace only with an explicitly in-scope instance.
+acct = Account.create()  # Ephemeral account; never load a regular wallet key.
 s = requests.Session()
 nonce = s.get(f'{BASE}/api/auth/nonce').json()['nonce']
 msg = encode_defunct(text=nonce)
@@ -51,7 +64,7 @@ s.cookies.set('token', r.json()['token'])
 
 ---
 
-## EIP-1967 Proxy Pattern Exploitation
+## EIP-1967 Proxy Pattern Analysis
 
 **Storage slots:**
 ```text
@@ -59,12 +72,7 @@ Implementation: keccak256("eip1967.proxy.implementation") - 1
 Admin:          keccak256("eip1967.proxy.admin") - 1
 ```
 
-```bash
-cast storage $PROXY 0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc  # impl
-cast storage $PROXY 0xb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a717850b5d6103  # admin
-```
-
-**Key insight:** Proxy delegates calls to implementation, but storage lives on the proxy. `address(this)` in delegatecall = proxy address.
+For offline work, calculate the two slots and compare them with challenge-provided storage or transaction data; query a live endpoint only when it is the explicitly authorized challenge instance. Proxy delegates calls to implementation, but storage lives on the proxy. `address(this)` in delegatecall = proxy address.
 
 ---
 
@@ -115,18 +123,9 @@ Offset `0x20` serves dual purpose: offset pointer AND bytes length.
 
 ---
 
-## Complete Exploit Flow (House of Illusions)
+## House of Illusions Analysis Flow
 
-```bash
-export PATH="$PATH:/Users/lcf/.foundry/bin"
-RPC="https://ethereum-sepolia-rpc.publicnode.com"
-
-forge create src/IllusionHouse.sol:IllusionHouse --private-key $KEY --rpc-url $RPC --broadcast
-cast send $PROXY "reframe(address)" $NEW_IMPL --private-key $KEY --rpc-url $RPC
-cast send $PROXY $CRAFTED_CALLDATA --private-key $KEY --rpc-url $RPC
-cast send $PROXY "appointCurator(address)" $MY_ADDR --private-key $KEY --rpc-url $RPC
-cast call $FACTORY "isSolved(address)(bool)" $MY_ADDR --rpc-url $RPC
-```
+Use the supplied source, ABI, calldata, and chain snapshot to trace the proxy's validation and state changes offline. Reproduce the sequence only against a disposable local challenge chain by default. A remote run requires the organizer-provided instance, explicit authorization for transactions, and a disposable challenge account; never point this flow at a public chain or a regular wallet.
 
 ---
 
@@ -162,17 +161,7 @@ contract Attacker {
 }
 ```
 
-```bash
-# Deploy attacker
-forge create Attacker.sol:Attacker --rpc-url $RPC --private-key $KEY
-# Hijack governance
-cast send $VAULT "setGovernance(address)" $ATTACKER --rpc-url $RPC --private-key $KEY
-# Execute delegatecall
-CALLDATA=$(cast calldata "attack(address)" $PLAYER)
-cast send $VAULT "execute(bytes)" $CALLDATA --rpc-url $RPC --private-key $KEY
-# Drain
-cast send $VAULT "withdraw()" --rpc-url $RPC --private-key $KEY
-```
+Reproduce this storage-context sequence in a disposable local harness. Treat remote contract calls as out of scope unless the organizer explicitly authorizes the exact challenge instance and the relevant actions.
 
 **Key insight:** Always check if `setGovernance()` / `setImplementation()` / upgrade functions have access control. Unprotected governance setters + delegatecall = full storage control.
 
@@ -333,11 +322,7 @@ contract Attacker {
 }
 ```
 
-```python
-# Deploy and trigger via web3.py / Foundry:
-# forge create Attacker --constructor-args $VULNERABLE_ADDR --rpc-url $RPC --private-key $KEY
-# cast send $ATTACKER "attack()" --value 1ether --rpc-url $RPC --private-key $KEY
-```
+Reproduce the vulnerable call order only in a disposable local harness; remote transactions require explicit authorization for the exact challenge instance.
 
 **Fix patterns:**
 ```solidity
@@ -370,5 +355,5 @@ payable(msg.sender).transfer(amount);
 - **Empty revert data (`0x`):** Usually ABI decoder validation failure.
 - **Contract nonce:** Starts at 1. Nonce = 1 means no child contracts created.
 - **Derive child addresses:** `keccak256(rlp.encode([parent_address, nonce]))[-20:]`
-- **Foundry tools:** `cast call` (read), `cast send` (write), `cast storage` (raw slots), `forge create` (deploy)
-- **Sepolia faucets:** Google Cloud faucet (0.05 ETH), Alchemy, QuickNode
+- **Offline-first:** inspect provided ABI, calldata, bytecode, and chain data before considering any interaction.
+- **Local experiments:** use a disposable local challenge chain; remote RPC or transactions require explicit organizer authorization for that exact instance.

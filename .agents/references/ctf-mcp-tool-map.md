@@ -55,8 +55,8 @@ The manifest category is the canonical setup grouping; tools may also be useful 
 
 ## Utility tools
 
-- `ctf_mcp_health` reports server identity and readiness.
-- `ctf_tool_status` reports each local dependency as ready or missing. `doctor` checks installed tools and WSL readiness; it does not prove the live agent has connected.
+- `ctf_mcp_health` reports server identity and liveness without checking dependencies.
+- `ctf_tool_status` reports local dependency readiness. `doctor` checks installed tools and WSL readiness; it does not prove the live agent has connected.
 - `ctf_workspace_import` imports a bounded, hash-verified file from a declared source root into the active workspace.
 
 Frida is installed as `frida==17.24.3` in a `ctfagent` virtual environment.

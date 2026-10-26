@@ -35,3 +35,6 @@ scratch/
 *.key
 *.tmp
 docs/
+
+# npm tarballs
+*.tgz

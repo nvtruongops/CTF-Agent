@@ -30,6 +30,10 @@ Tool availability depends on the host environment:
 
 Use the CTF-Agent MCP tools `ctf_reverse_inspect`, `ctf_reverse_disassemble`, and `ctf_reverse_gdb_info` for scoped Linux/ELF challenge artifacts. These tools provide bounded metadata, symbols, strings, disassembly, and fixed GDB inspection; they do not provide broad decompilation or APK/package analysis. Check the local capabilities and limits in [the CTF MCP tool map](../../references/ctf-mcp-tool-map.md).
 
+## Android APK/DEX
+
+Treat APK reversing as a manual static-analysis workflow; the MCP reverse tools do not parse APK/package structure. Preserve the original supplied APK and work on a copy. Inspect package metadata and the manifest first, then inspect DEX bytecode and any native libraries. Only after static triage, consider bounded emulation or dynamic analysis on a challenge-provided or otherwise authorized environment; keep any device, accounts, and network interactions within the challenge rules.
+
 ## Additional Resources
 
 - [tools.md](tools.md) - Static analysis tools (GDB, Ghidra, radare2, IDA, Binary Ninja, dogbolt.org, RISC-V with Capstone, Unicorn emulation, Python bytecode, WASM, Android APK, .NET, packed binaries)
