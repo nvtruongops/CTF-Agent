@@ -11,7 +11,7 @@ Quick reference for RE challenges. For detailed techniques, see supporting files
 ## Prerequisites & Tooling
 
 Tool availability depends on the host environment:
-- **Python packages**: `frida-tools`, `angr`, `qiling`, `uncompyle6`, `capstone`, `lief`, `z3-solver` (available in the active Python environment)
+- **Python packages**: `frida==17.24.3` in the CTF-Agent virtual environment for scoped instrumentation; `angr`, `qiling`, `uncompyle6`, `capstone`, `lief`, and `z3-solver` may be installed separately for workflows outside the CTF-Agent MVP.
 - **System binaries**: `gdb`, `radare2` (`r2`), `binutils` (`objdump`, `readelf`, `nm`), `strace`, `ltrace`, `apktool`, `upx`
 - **Manual tools**: `pwndbg`, `pycdc` (Python 3.9+ bytecode decompiler)
 
@@ -27,6 +27,8 @@ Tool availability depends on the host environment:
 - **On Native Linux / WSL**:
   - Use Python packages from the active environment.
   - Use `r2`, `gdb`, `apktool`, `upx`, and Python with `angr` / `qiling` / `frida` directly.
+
+Use the CTF-Agent MCP tools `ctf_reverse_inspect`, `ctf_reverse_disassemble`, and `ctf_reverse_gdb_info` for scoped Linux/ELF challenge artifacts. These tools provide bounded metadata, symbols, strings, disassembly, and fixed GDB inspection; they do not provide broad decompilation or APK/package analysis. Check the local capabilities and limits in [the CTF MCP tool map](../../references/ctf-mcp-tool-map.md).
 
 ## Additional Resources
 

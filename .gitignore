@@ -7,6 +7,9 @@ htmlcov/
 venv/
 .venv/
 
+# Node MCP runtime
+node_modules/
+
 # Local tooling and editors
 .codegraph/
 .vscode/
@@ -22,8 +25,13 @@ core.*
 *.log
 tmp/
 scratch/
+.ctf-agent/scope.json
+.ctf-workspaces/
 .env
+.env.*
+!.env.example
 .env.local
 *.pem
 *.key
 *.tmp
+docs/

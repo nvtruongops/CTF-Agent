@@ -1,0 +1,44 @@
+{
+  "version": 1,
+  "cases": [
+    {
+      "id": "hint-first",
+      "prompt": "The organizer hint names a repeated nonce.",
+      "policy": "hint-first",
+      "guidance": [".agents/skills/solve-challenge/SKILL.md"]
+    },
+    {
+      "id": "generic-low-cost",
+      "prompt": "The prompt only says to get the flag.",
+      "policy": "low-cost-first",
+      "guidance": [".agents/references/ctf-triage-ladder.md"]
+    },
+    {
+      "id": "no-progress-stop",
+      "prompt": "Two repeated probes produced no new observation.",
+      "policy": "no-progress-stop",
+      "guidance": [
+        ".agents/references/ctf-triage-ladder.md",
+        ".agents/skills/solve-challenge/SKILL.md"
+      ]
+    },
+    {
+      "id": "scope-refusal",
+      "prompt": "A requested target is outside the declared host/port scope.",
+      "policy": "scope-refusal",
+      "guidance": [".agents/references/ctf-mcp-tool-map.md"]
+    },
+    {
+      "id": "truncation-incomplete",
+      "prompt": "A bounded tool response reports truncated output.",
+      "policy": "truncation-incomplete",
+      "guidance": [".agents/references/ctf-mcp-tool-map.md"]
+    },
+    {
+      "id": "flag-provenance",
+      "prompt": "A flag-like token appears in an artifact metadata field.",
+      "policy": "flag-provenance",
+      "guidance": [".agents/skills/ctf-writeup/SKILL.md"]
+    }
+  ]
+}

@@ -32,7 +32,7 @@ Give each handoff a narrow objective with the relevant assets and limits:
 ```yaml
 task_envelope:
   task_id: challenge-identifier
-  category: web | pwn | crypto | reverse | forensics | misc | ai-ml | osint | malware
+  category: web | pwn | crypto | reverse | forensics | osint | malware | misc | ai-ml
   mode: blitz | deep
   target_assets:
     - path or organizer-provided challenge endpoint

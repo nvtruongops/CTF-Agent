@@ -13,7 +13,7 @@ When a challenge has **no specific hint or description** (or only a generic prom
 │  - strings, exiftool, curl /robots.txt, source HTML comments, git log  │
 │  - Default credentials, basic logic bypass, plaintext flag in binary   │
 └──────────────────────────────────┬─────────────────────────────────────┘
-                                   ▼ (Escalate only if Tier 1 yields nothing)
+                                   ▼ (Escalate only with recorded evidence)
 ┌────────────────────────────────────────────────────────────────────────┐
 │  TIER 2: TEXTBOOK CLASSIC FLAWS (FOUNDATIONAL PATTERNS)                │
 │  - Web: ' OR 1=1--, basic php://filter LFI, PHP 7 type juggling        │
@@ -21,7 +21,7 @@ When a challenge has **no specific hint or description** (or only a generic prom
 │  - Crypto: factordb factor lookup, Wiener attack, Caesar, single XOR   │
 │  - Forensics: zsteg -a, binwalk -e, Wireshark HTTP/FTP credentials     │
 └──────────────────────────────────┬─────────────────────────────────────┘
-                                   ▼ (Escalate only if Tier 2 yields nothing)
+                                   ▼ (Escalate only with recorded evidence)
 ┌────────────────────────────────────────────────────────────────────────┐
 │  TIER 3: STANDARD EXPLOIT CHAINS (INTERMEDIATE PLAYBOOKS)              │
 │  - Web: SSTI (Jinja2/Twig), JWT forgery, Prototype pollution, SSRF     │
@@ -29,7 +29,7 @@ When a challenge has **no specific hint or description** (or only a generic prom
 │  - Crypto: Padding oracle CBC, MT19937 untemper, Coppersmith small root│
 │  - Forensics: Volatility 3 pslist/filescan, USB HID extraction         │
 └──────────────────────────────────┬─────────────────────────────────────┘
-                                   ▼ (Escalate only if Tier 3 yields nothing)
+                                   ▼ (Escalate only with recorded evidence)
 ┌────────────────────────────────────────────────────────────────────────┐
 │  TIER 4: ADVANCED IN-META TECHNIQUES (2024–2026+ DEEP EXPLOITS)        │
 │  - Web: RSC Flight RCE, WeasyPrint SSRF, Web3 EIP-1153, Groth16 ZKP    │
@@ -38,6 +38,17 @@ When a challenge has **no specific hint or description** (or only a generic prom
 │  - AI/ML: LoRA weight merging, Model inversion, Prompt injection       │
 └────────────────────────────────────────────────────────────────────────┘
 ```
+
+---
+
+## Evidence-Gated Escalation and Stop/Pivot
+
+This ladder is the fallback for generic/no-hint challenges. A specific hint, version fingerprint, or explicit constraint takes precedence and may justify a different first probe.
+
+- Escalate only when a recorded observation supports the next tier; a failed command or an absence of results alone is not enough.
+- Track each hypothesis, bounded probe, and resulting observation. Two consecutive attempts without new relevant evidence end that strategy; do not repeat it or increase complexity just to keep trying.
+- Pivot only when a new observation supports a distinct category or hypothesis. Name that observation, ensure the next probe remains within declared scope, and choose one bounded next probe. A host refusal ends that path; follow Step 0.6's refusal router for permitted alternatives.
+- If no evidence supports a pivot, state the blocker, record the unresolved question, or ask for the missing input.
 
 ---
 

@@ -35,7 +35,7 @@ The YAML frontmatter contains the following fields:
 ---
 title: "<Challenge Name>"
 ctf: "<CTF Event / Platform Name>"
-category: <web|pwn|crypto|reverse|forensics|osint|malware|misc>
+category: <web|pwn|crypto|reverse|forensics|osint|malware|misc|ai-ml>
 diff: <easy|medium|hard|insane>
 flag: "<flag_value>"
 hint: "<hint_content_or_official_description>"
@@ -65,7 +65,14 @@ hint: "<hint_content_or_official_description>"
 <one complete, standalone, runnable solving script from challenge data to flag>
 ```
 
-## 5. Verification & Flag
+## 5. Evidence & Reproducibility
+- **Artifact / Observation**: Source path and SHA-256 when available, or the MCP observation identifier.
+- **Environment & Scope**: Relevant environment and authorized host/port or local challenge workspace.
+- **Tool Provenance**: Tool/MCP operation and version, with the exact command or parameter values used.
+- **Supporting Output**: Minimal direct output or evidence reference for each material conclusion.
+- **Claim Status**: Mark material conclusions as directly verified, inferred, or unresolved. For the flag, include the exact verification output and its source.
+
+## 6. Verification & Flag
 ```text
 <exact_flag_here>
 ```
@@ -82,4 +89,5 @@ Before finalizing the lab:
 - [ ] **Redundant files removed** — no `flag.txt` and no duplicate `.md` files.
 - [ ] **All challenge data organized** — source code, logs, and downloads placed inside `resources/`.
 - [ ] **Reproducible solve script** — `solve.py` is self-contained and runnable.
+- [ ] **Evidence provenance complete** — material claims cite their source, tool/version, supporting output, and verification status.
 - [ ] **Real flag verified** — exact flag verified and documented.

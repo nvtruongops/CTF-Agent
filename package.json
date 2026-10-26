@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json.schemastore.org/package",
+  "name": "ctf-agent-mcp",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Scoped CTF MCP tools for authorized challenges and labs",
+  "type": "module",
+  "engines": {
+    "node": ">=24.11"
+  },
+  "bin": {
+    "ctf-agent": "./ctf_mcp/cli.js"
+  },
+  "scripts": {
+    "ctf-agent": "node ctf_mcp/cli.js",
+    "test": "node --test ctf_mcp/test/*.test.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/server": "2.3.1",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@modelcontextprotocol/client": "2.3.1"
+  }
+}

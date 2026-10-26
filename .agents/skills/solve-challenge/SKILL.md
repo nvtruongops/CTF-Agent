@@ -10,7 +10,7 @@ You're a skilled CTF player. Your goal is to solve the challenge and find the fl
 
 ## Environment & Tool Availability
 
-This repository provides guidance, not a managed toolchain. Check which required tools are available in the host environment and consult their upstream installation instructions when needed.
+The `.agents/` collection provides guidance; the parent CTF-Agent repository may also provide its optional MCP runtime. When using that runtime, check readiness with `npm run ctf-agent -- doctor --json` and follow [the CTF MCP tool map](../../references/ctf-mcp-tool-map.md). Otherwise check which tools the host already provides and consult their upstream installation instructions when needed.
 
 - On Windows, use WSL for Linux-only tools. Keep challenge files in their original location and work on copies when a tool may modify them.
 - On Linux or WSL, run tools using the active environment configured by the host.
@@ -18,6 +18,7 @@ This repository provides guidance, not a managed toolchain. Check which required
 
 - [exploit-databases.md](../../references/exploit-databases.md) - CVE advisories, vulnerability databases, SearchSploit, and public proof-of-concept repositories.
 - [security-events-and-intelligence.md](../../references/security-events-and-intelligence.md) - CTFtime archives, security event research, and public threat intelligence sources.
+- [ctf-mcp-tool-map.md](../../references/ctf-mcp-tool-map.md) - CTF MCP setup, category tool routing, scope, and WSL limitations.
 
 ## Workflow
 
@@ -41,13 +42,13 @@ Determine the operational profile before beginning exploitation:
 ### Step 0.6: Task Envelope & Security Context Binding
 
 Before delegating to category skills or secondary agents, bind the challenge/lab into a **Task Envelope (TE)** and **Security Context Object (SCO)** per [multi-agent-orchestration-and-policy-routing.md](../../references/multi-agent-orchestration-and-policy-routing.md):
-1. **Define Security Context**: Binds target endpoint/file, establishes `mode: ctf | lab`, confirms `environment.isolated: true`.
+1. **Define Security Context**: Binds target endpoint/file and establishes `mode: ctf | lab`. Record `environment.isolated` as `true`, `false`, or `unknown` from evidence; do not assume a WSL user or scope declaration is a sandbox.
 2. **Shallow Execution Mandate**: Activate or read the matching category skill (for example, `ctf-web` or `ctf-pwn`) using the host's skill mechanism. Do not spawn recursive subagents.
 3. **Refusal Router Protocol**:
-   - If an invocation returns a safety refusal, classify:
-     - Type A (Wording): at most 1 retry using clear academic and diagnostic language; keep the authorization scope unchanged.
-     - Type B (Ambiguity): 1 retry with attached Security Context.
-     - Type C (Hard Policy): 0 retries with rephrasing; fall back to available deterministic tools within the authorized scope.
+    - If an invocation returns a safety refusal, clarify only missing or inaccurate authorization facts without disguising the requested action.
+      - Type A (Context correction): at most one retry that states the true challenge and target plainly.
+      - Type B (Scope ambiguity): at most one retry after adding verified target and organizer scope.
+      - Type C (Hard policy): do not retry, rephrase to evade, or delegate the same action; continue only with a permitted alternative.
 
 ### Step 1: Hint & Description Analysis (Hint-First Methodology)
 
@@ -89,13 +90,15 @@ Determine the primary category, then invoke the matching skill.
 - Images, audio, PDFs with no obvious content -> forensics (steganography)
 
 **By challenge description keywords:**
+- "LLM prompt injection", "LLM jailbreak", "model extraction", "adversarial examples", "neural networks", "LLM security challenge" -> ai-ml (for LLM/model targets, use this specific route before the generic web "injection" cue)
 - "buffer overflow", "ROP", "shellcode", "libc", "heap" -> pwn
 - "RSA", "AES", "cipher", "encrypt", "prime", "modulus", "lattice", "LWE", "GCM" -> crypto
 - "XSS", "SQL", "injection", "cookie", "JWT", "SSRF" -> web
 - "disk image", "memory dump", "packet capture", "registry", "power trace", "side-channel", "spectrogram", "audio tracks", "MKV" -> forensics
 - "find", "locate", "identify", "who", "where" -> osint
 - "obfuscated", "packed", "C2", "malware", "beacon" -> malware
-- "jail", "sandbox", "escape", "encoding", "signal", "game", "Nim", "commitment", "Gray code" -> misc
+- "game client", "game hacking", "game binary" -> reverse (memory exploitation -> pwn)
+- "jail", "sandbox", "escape", "encoding", "signal", "game theory", "Nim", "commitment", "Gray code" -> misc
 
 **By service behavior:**
 - Port with interactive prompt, crash on long input -> pwn
@@ -117,18 +120,29 @@ Once you identify the category, load the matching skill using the host's skill m
 | OSINT | `ctf-osint` | Social media, geolocation, DNS, public records |
 | Malware | `ctf-malware` | Obfuscated scripts, C2 traffic, PE/.NET analysis |
 | Misc | `ctf-misc` | Jails, encodings, RF/SDR, esoteric languages, constraint solving |
+| AI/ML | `ctf-ai-ml` | Model attacks, adversarial examples, prompt security, model extraction |
+
+Related topics route through these existing specialist skills:
+
+| Topic | Default route | Conditional route / limit |
+|---|---|---|
+| Steganography | `ctf-forensics` | OSINT-led cases may start with `ctf-osint` |
+| Hardware / firmware | `ctf-reverse` | Signal or measurement traces use `ctf-forensics` |
+| Game hacking | `ctf-reverse` | Memory-exploitation cases use `ctf-pwn` |
+| Web3 / smart contracts | `ctf-web` | Cryptographic primitives or protocol math use `ctf-crypto` |
+| Mobile reversing | `ctf-reverse` | — |
+| PPC / programming puzzles | `ctf-misc` (best-effort fallback) | No dedicated PPC skill exists |
 
 Load the full `ctf-<category>` skill instructions with detailed techniques.
 
 ### Step 5: Pivot When Stuck
 
-If your first approach doesn't work:
+Use this step after comparing the result of a bounded probe with the hypothesis it was meant to test:
 
-1. **Re-examine assumptions** -- Is this really the category you think? A "web" challenge might need crypto for JWT forgery. A "forensics" PCAP might contain a pwn exploit to replay.
-2. **Try a different category skill** -- Many challenges span multiple categories. Load a second skill for the cross-cutting technique.
-3. **Look for what you missed** -- Hidden files, alternate ports, response headers, comments in source, metadata in images.
-4. **Simplify** -- If an exploit is too complex, check if there's a simpler path (default creds, known CVE, logic bug).
-5. **Check edge cases** -- Off-by-one, race conditions, integer overflow, encoding mismatches.
+1. Record the observation and whether it confirms, rejects, or leaves the hypothesis unresolved.
+2. A failed probe alone is not evidence for escalation or a different category. Two consecutive attempts without new relevant evidence end that strategy.
+3. Pivot only when a new observation supports a distinct category or hypothesis. Name that observation and choose one bounded next probe.
+4. If no observation supports a pivot, state the blocker, record the unresolved question, or ask for the missing input instead of repeating broader probes.
 
 **Common multi-category patterns:**
 - Forensics + Crypto: encrypted data in PCAP/disk image, need crypto to decrypt
@@ -152,11 +166,14 @@ When running in Blitz mode (active CTF competition):
 2. Report the exact flag and the direct output or response that established it.
 3. Do not create a writeup. Preserve challenge files and scratch artifacts unless the user asks for cleanup.
 4. Keep the response concise: verified flag, method, and submission status when applicable.
+5. Skip `ctf-lab-retrospective` unless the user explicitly asks; if asked, run it only after reporting and do not resume challenge probing.
 #### Branch B: Deep Analysis Mode (`--mode deep` or `--deep`)
 For labs, research, and practice:
 1. Preserve original artifacts; use copies for analysis.
 2. Load the `ctf-writeup` skill when a reproducible report is requested.
 3. Include a standalone `solve.py` only when useful to reproduce the result, and verify it from a fresh run.
+4. Report the first verified flag and its direct evidence before doing any retrospective.
+5. After reporting, invoke `ctf-lab-retrospective` for every deep/lab solve, including when there is no reusable lesson; in that case say “no proposed update” and write no file.
 ## Flag Formats
 
 Flags vary by CTF. Common formats:

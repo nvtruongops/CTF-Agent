@@ -1,0 +1,412 @@
+{
+  "schemaVersion": 1,
+  "baseExecutables": ["python3"],
+  "profiles": {
+    "base": { "apt": ["python3"] },
+    "full": {
+      "apt": [
+        "binutils",
+        "binwalk",
+        "checksec",
+        "coreutils",
+        "curl",
+        "bind9-dnsutils",
+        "file",
+        "ffuf",
+        "gdb",
+        "libimage-exiftool-perl",
+        "python3-venv",
+        "ncat",
+        "nmap",
+        "python3",
+        "python3-pwntools",
+        "sigrok-cli",
+        "sqlmap",
+        "steghide",
+        "tshark",
+        "whois",
+        "z3"
+      ],
+      "python": ["frida==17.24.3"]
+    },
+    "web": { "apt": ["coreutils", "ffuf", "nmap", "sqlmap"] },
+    "crypto": { "apt": ["john", "python3", "z3"] },
+    "pwn": { "apt": ["checksec", "coreutils", "gdb", "python3-pwntools", "python3-ropgadget"] },
+    "forensics": { "apt": ["binwalk", "libimage-exiftool-perl", "tshark", "yara"] },
+    "exploitation": { "apt": ["coreutils", "curl", "ffuf", "hydra", "ncat", "nmap", "sqlmap"] },
+    "osint": { "apt": ["bind9-dnsutils", "whois"] },
+    "steganography": { "apt": ["libimage-exiftool-perl", "stegseek", "steghide"] },
+    "hardware": { "apt": ["sigrok-cli"] },
+    "reverse": { "apt": ["binutils", "file", "gdb", "python3"] },
+    "game_hacking": { "apt": ["python3-venv"], "python": ["frida==17.24.3"] },
+    "misc": { "apt": [] },
+    "competition": { "apt": [] }
+  },
+  "categories": [
+    {
+      "id": "web",
+      "provider": "ctf-mcp",
+      "tools": [
+        {
+          "id": "ctf_nmap_scan",
+          "executable": "nmap",
+          "probeArgs": ["--version"],
+          "packages": { "apt": ["nmap"] },
+          "timeoutMs": 120000,
+          "maxOutputBytes": 1048576
+        },
+        {
+          "id": "ctf_sqlmap_test",
+          "executable": "sqlmap",
+          "probeArgs": ["--version"],
+          "requiredExecutables": ["python3"],
+          "packages": { "apt": ["python3", "sqlmap"] },
+          "timeoutMs": 180000,
+          "maxOutputBytes": 1048576
+        },
+        {
+          "id": "ctf_ffuf_discover",
+          "executable": "ffuf",
+          "probeArgs": ["-V"],
+          "requiredExecutables": ["python3"],
+          "packages": { "apt": ["ffuf", "python3"] },
+          "timeoutMs": 180000,
+          "maxOutputBytes": 1048576
+        }
+      ]
+    },
+    {
+      "id": "reverse",
+      "provider": "ctf-mcp",
+      "tools": [
+        {
+          "id": "ctf_reverse_inspect",
+          "executable": "python3",
+          "probeArgs": ["--version"],
+          "requiredExecutables": ["file", "readelf", "strings"],
+          "packages": { "apt": ["binutils", "file", "python3"] },
+          "timeoutMs": 100000,
+          "maxOutputBytes": 1048576
+        },
+        {
+          "id": "ctf_reverse_disassemble",
+          "executable": "python3",
+          "probeArgs": ["--version"],
+          "requiredExecutables": ["objdump"],
+          "packages": { "apt": ["binutils", "python3"] },
+          "timeoutMs": 40000,
+          "maxOutputBytes": 1048576
+        },
+        {
+          "id": "ctf_reverse_gdb_info",
+          "executable": "python3",
+          "probeArgs": ["--version"],
+          "requiredExecutables": ["gdb"],
+          "packages": { "apt": ["gdb", "python3"] },
+          "timeoutMs": 40000,
+          "maxOutputBytes": 1048576
+        }
+      ]
+    },
+    {
+      "id": "crypto",
+      "provider": "ctf-mcp",
+      "tools": [
+        {
+          "id": "ctf_smt_solve",
+          "executable": "z3",
+          "probeArgs": ["--version"],
+          "packages": { "apt": ["z3"] },
+          "timeoutMs": 60000,
+          "maxOutputBytes": 1048576
+        },
+        {
+          "id": "ctf_crypto_candidates",
+          "builtin": true,
+          "packages": { "apt": [] },
+          "timeoutMs": 5000,
+          "maxOutputBytes": 262144
+        },
+        {
+          "id": "ctf_crypto_john",
+          "optionalProfile": "crypto",
+          "executable": "john",
+          "probeArgs": ["--list=build-info"],
+          "packages": { "apt": ["john"] },
+          "timeoutMs": 30000,
+          "maxOutputBytes": 262144
+        }
+      ]
+    },
+    {
+      "id": "pwn",
+      "provider": "ctf-mcp",
+      "tools": [
+        {
+          "id": "ctf_pwn_checksec",
+          "executable": "checksec",
+          "probeArgs": ["--version"],
+          "requiredExecutables": ["python3"],
+          "packages": { "apt": ["checksec", "python3"] },
+          "timeoutMs": 30000,
+          "maxOutputBytes": 262144
+        },
+        {
+          "id": "ctf_pwn_cyclic",
+          "executable": "pwn",
+          "probeArgs": ["--help"],
+          "packages": { "apt": ["python3-pwntools"] },
+          "timeoutMs": 30000,
+          "maxOutputBytes": 262144
+        },
+        {
+          "id": "ctf_pwn_run",
+          "executable": "timeout",
+          "probeArgs": ["--version"],
+          "requiredExecutables": ["python3"],
+          "packages": { "apt": ["coreutils", "python3"] },
+          "timeoutMs": 30000,
+          "maxOutputBytes": 1048576
+        },
+        {
+          "id": "ctf_pwn_ropgadget",
+          "optionalProfile": "pwn",
+          "executable": "ROPgadget",
+          "probeArgs": ["--version"],
+          "packages": { "apt": ["python3-ropgadget"] },
+          "timeoutMs": 30000,
+          "maxOutputBytes": 262144
+        }
+      ]
+    },
+    {
+      "id": "forensics",
+      "provider": "ctf-mcp",
+      "tools": [
+        {
+          "id": "ctf_forensics_pcap",
+          "executable": "tshark",
+          "probeArgs": ["--version"],
+          "requiredExecutables": ["python3"],
+          "packages": { "apt": ["python3", "tshark"] },
+          "timeoutMs": 120000,
+          "maxOutputBytes": 1048576
+        },
+        {
+          "id": "ctf_forensics_firmware",
+          "executable": "binwalk",
+          "probeArgs": ["--help"],
+          "requiredExecutables": ["python3"],
+          "packages": { "apt": ["binwalk", "python3"] },
+          "timeoutMs": 120000,
+          "maxOutputBytes": 1048576
+        },
+        {
+          "id": "ctf_forensics_metadata",
+          "executable": "exiftool",
+          "probeArgs": ["-ver"],
+          "requiredExecutables": ["python3"],
+          "packages": { "apt": ["libimage-exiftool-perl", "python3"] },
+          "timeoutMs": 30000,
+          "maxOutputBytes": 262144
+        },
+        {
+          "id": "ctf_forensics_pcap_follow_stream",
+          "executable": "tshark",
+          "probeArgs": ["--version"],
+          "requiredExecutables": ["python3"],
+          "packages": { "apt": ["python3", "tshark"] },
+          "timeoutMs": 120000,
+          "maxOutputBytes": 1048576
+        },
+        {
+          "id": "ctf_forensics_yara_scan",
+          "optionalProfile": "forensics",
+          "executable": "yara",
+          "probeArgs": ["--version"],
+          "packages": { "apt": ["yara"] },
+          "timeoutMs": 30000,
+          "maxOutputBytes": 262144
+        }
+      ]
+    },
+    {
+      "id": "exploitation",
+      "provider": "ctf-mcp",
+      "tools": [
+        {
+          "id": "ctf_scoped_http_request",
+          "executable": "curl",
+          "probeArgs": ["--version"],
+          "packages": { "apt": ["curl"] },
+          "timeoutMs": 30000,
+          "maxOutputBytes": 1048576
+        },
+        {
+          "id": "ctf_scoped_tcp_exchange",
+          "executable": "ncat",
+          "probeArgs": ["--version"],
+          "packages": { "apt": ["ncat"] },
+          "timeoutMs": 30000,
+          "maxOutputBytes": 262144
+        },
+        {
+          "id": "ctf_hydra_audit",
+          "optionalProfile": "exploitation",
+          "executable": "hydra",
+          "probeArgs": ["-h"],
+          "packages": { "apt": ["hydra"] },
+          "timeoutMs": 30000,
+          "maxOutputBytes": 262144
+        }
+      ]
+    },
+    {
+      "id": "game_hacking",
+      "provider": "ctf-mcp",
+      "tools": [
+        {
+          "id": "ctf_game_frida_spawn",
+          "executable": "/home/ctfagent/.local/share/ctf-agent/frida-venv/bin/python",
+          "probeArgs": ["-c", "import frida,sys; print(frida.__version__); sys.exit(frida.__version__ != '17.24.3')"],
+          "packages": { "apt": ["python3-venv"], "python": ["frida==17.24.3"] },
+          "timeoutMs": 120000,
+          "maxOutputBytes": 1048576
+        }
+      ]
+    },
+    {
+      "id": "misc",
+      "provider": "ctf-mcp",
+      "tools": [
+        {
+          "id": "ctf_decode",
+          "builtin": true,
+          "packages": { "apt": [] },
+          "timeoutMs": 5000,
+          "maxOutputBytes": 262144
+        }
+      ]
+    },
+    {
+      "id": "osint",
+      "provider": "ctf-mcp",
+      "tools": [
+        {
+          "id": "ctf_dns_lookup",
+          "executable": "dig",
+          "probeArgs": ["-v"],
+          "packages": { "apt": ["bind9-dnsutils"] },
+          "timeoutMs": 30000,
+          "maxOutputBytes": 262144
+        },
+        {
+          "id": "ctf_whois_lookup",
+          "executable": "whois",
+          "probeArgs": ["--version"],
+          "packages": { "apt": ["whois"] },
+          "timeoutMs": 30000,
+          "maxOutputBytes": 262144
+        }
+      ]
+    },
+    {
+      "id": "steganography",
+      "provider": "ctf-mcp",
+      "tools": [
+        {
+          "id": "ctf_stego_steghide",
+          "executable": "steghide",
+          "probeArgs": ["--version"],
+          "requiredExecutables": ["python3"],
+          "packages": { "apt": ["python3", "steghide"] },
+          "timeoutMs": 60000,
+          "maxOutputBytes": 1048576
+        },
+        {
+          "id": "ctf_stego_steghide_extract",
+          "executable": "steghide",
+          "probeArgs": ["--version"],
+          "requiredExecutables": ["python3"],
+          "packages": { "apt": ["python3", "steghide"] },
+          "timeoutMs": 60000,
+          "maxOutputBytes": 262144
+        },
+        {
+          "id": "ctf_stego_metadata",
+          "executable": "exiftool",
+          "probeArgs": ["-ver"],
+          "requiredExecutables": ["python3"],
+          "packages": { "apt": ["libimage-exiftool-perl", "python3"] },
+          "timeoutMs": 30000,
+          "maxOutputBytes": 262144
+        },
+        {
+          "id": "ctf_stegseek_crack",
+          "optionalProfile": "steganography",
+          "executable": "stegseek",
+          "probeArgs": ["--version"],
+          "packages": { "apt": ["stegseek"] },
+          "timeoutMs": 60000,
+          "maxOutputBytes": 262144
+        }
+      ]
+    },
+    {
+      "id": "hardware",
+      "provider": "ctf-mcp",
+      "tools": [
+        {
+          "id": "ctf_hardware_decode_signal",
+          "executable": "sigrok-cli",
+          "probeArgs": ["--version"],
+          "requiredExecutables": ["python3"],
+          "packages": { "apt": ["python3", "sigrok-cli"] },
+          "timeoutMs": 120000,
+          "maxOutputBytes": 1048576
+        }
+      ]
+    },
+    {
+      "id": "competition",
+      "provider": "ctf-mcp",
+      "tools": [
+        {
+          "id": "ctf_ctfd_list_challenges",
+          "builtin": true,
+          "packages": { "apt": [] },
+          "timeoutMs": 15000,
+          "maxOutputBytes": 2097152
+        },
+        {
+          "id": "ctf_ctfd_get_challenge",
+          "builtin": true,
+          "packages": { "apt": [] },
+          "timeoutMs": 15000,
+          "maxOutputBytes": 2097152
+        },
+        {
+          "id": "ctf_ctfd_download_attachment",
+          "builtin": true,
+          "packages": { "apt": [] },
+          "timeoutMs": 60000,
+          "maxOutputBytes": 4096
+        },
+        {
+          "id": "ctf_ctfd_auth_status",
+          "builtin": true,
+          "packages": { "apt": [] },
+          "timeoutMs": 15000,
+          "maxOutputBytes": 65536
+        },
+        {
+          "id": "ctf_ctfd_progress",
+          "builtin": true,
+          "packages": { "apt": [] },
+          "timeoutMs": 15000,
+          "maxOutputBytes": 65536
+        }
+      ]
+    }
+  ]
+}

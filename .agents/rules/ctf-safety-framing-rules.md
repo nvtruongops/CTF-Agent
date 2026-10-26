@@ -84,7 +84,7 @@ security_context:
 ```yaml
 task_envelope:
   task_id: "<unique_challenge_or_lab_id>"
-  category: "web | pwn | crypto | reverse | forensics | misc | ai-ml | osint"
+  category: "web | pwn | crypto | reverse | forensics | osint | malware | misc | ai-ml"
   mode: "blitz | deep"
   target_assets:
     - "<path_to_challenge_files>"

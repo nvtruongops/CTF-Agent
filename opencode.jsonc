@@ -1,0 +1,17 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "servers": {
+      "ctf-agent": {
+        "type": "local",
+        "command": ["node", "ctf_mcp/cli.js", "mcp"],
+        "cwd": ".",
+        "timeout": { "execution": 300000 },
+        "environment": {
+          "CTF_MCP_CTFD_URL": "{env:CTF_MCP_CTFD_URL}",
+          "CTF_MCP_CTFD_TOKEN": "{env:CTF_MCP_CTFD_TOKEN}"
+        }
+      }
+    }
+  }
+}

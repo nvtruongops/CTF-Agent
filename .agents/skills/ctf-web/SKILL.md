@@ -31,6 +31,8 @@ Tool availability depends on the host environment:
   - Use Python packages from the active environment.
   - System binaries (`curl`, `ffuf`, `jq`, `sqlmap`, `hashcat`) are directly available in PATH.
 
+When the project-local CTF MCP is available, use its scoped Nmap, SQLmap, FFUF, HTTP, DNS, or WHOIS operations only after confirming the active challenge scope. See [the CTF MCP tool map](../../references/ctf-mcp-tool-map.md); do not add arbitrary command arguments to bypass the tool schemas.
+
 ## Additional Resources
 
 - [sql-injection.md](sql-injection.md) - SQL injection techniques: unauthorized access, UNION extraction, filter boundaries, second-order SQLi, truncation, race-assisted leaks, INSERT ON DUPLICATE KEY UPDATE password overwrite, innodb_table_stats WAF mitigation analysis
