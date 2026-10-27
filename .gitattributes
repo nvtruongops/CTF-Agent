@@ -3,3 +3,6 @@
 
 # Shell scripts must always use LF line endings for WSL/Linux compatibility
 *.sh text eol=lf
+
+# npm normalizes executable shebangs to LF during installation.
+ctf_mcp/cli.js text eol=lf

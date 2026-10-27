@@ -77,6 +77,20 @@ test('npm package declares dual-use content and packs its disclosure', () => {
   assert.ok(packedFiles().includes('DISCLOSURE'));
 });
 
+test('Windows checkout preserves the CLI LF shebang that npm installs', () => {
+  const root = mkdtempSync(path.join(os.tmpdir(), 'ctf-agent-checkout-'));
+  try {
+    const result = spawnSync('git', [
+      '-c', 'core.autocrlf=true', 'checkout-index',
+      `--prefix=${root.replaceAll('\\', '/')}/`, '--', 'ctf_mcp/cli.js',
+    ], { cwd: repoRoot, encoding: 'utf8', timeout: 30_000 });
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(readFileSync(path.join(root, 'ctf_mcp/cli.js'), 'utf8').split('\n')[0], '#!/usr/bin/env node');
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
 test('package audit rejects packet artifacts and private-key material', () => {
   const root = mkdtempSync(path.join(os.tmpdir(), 'ctf-agent-package-audit-'));
   const put = (relativePath, text = 'fixture') => {
