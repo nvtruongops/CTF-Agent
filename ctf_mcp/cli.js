@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { runCommand, runWsl } from './wsl.js';
+import { assertMcpAccount, runCommand, runWsl } from './wsl.js';
 import { doctor } from './doctor.js';
 import { loadManifest } from './manifest.js';
 import { applySetupPlan, buildSetupPlan, packagesForProfile, probeAptPackages, setupReadinessIssues } from './setup.js';
@@ -277,7 +277,7 @@ async function runIdeSetupCommand(args) {
     return;
   }
 
-  const homeDir = process.env.USERPROFILE || homedir();
+  const homeDir = process.env.CTF_AGENT_WINDOWS_HOME || process.env.USERPROFILE || homedir();
   const clients = selectedClients(options, homeDir) ?? await promptForClients();
   const packageJson = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
   const plan = buildIdeSetupPlan({
@@ -285,6 +285,7 @@ async function runIdeSetupCommand(args) {
     homeDir,
     packageVersion: packageJson.version,
     installSkills: options.installSkills,
+    windowsLauncher: process.env.CTF_AGENT_WINDOWS_LAUNCHER || undefined,
   });
   displayIdeSetupPlan(plan, options.dryRun);
   if (options.dryRun) return;
@@ -315,6 +316,7 @@ async function main() {
   }
 
   if (command === 'mcp') {
+    if (process.platform === 'linux') assertMcpAccount();
     await startMcpServer({
       manifest: loadManifest(),
       projectRoot: process.env.CTF_AGENT_PROJECT_ROOT ?? process.cwd(),

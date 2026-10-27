@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import * as z from 'zod/v4';
 import { FRIDA_PYTHON } from '../frida-runtime.js';
 import { assertWorkspacePath, loadScope } from '../scope.js';
@@ -9,7 +9,7 @@ const MAX_OUTPUT_BYTES = 1_048_576;
 const MAX_TIMEOUT_MS = 120_000;
 const MAX_ARGS = 32;
 const MAX_ARG_LENGTH = 2048;
-const FRIDA_WORKER_SOURCE = readFileSync(new URL('./frida_worker.py', import.meta.url), 'utf8');
+const FRIDA_WORKER_PATH = fileURLToPath(new URL('./frida_worker.py', import.meta.url));
 
 function workspaceRoot(scope) {
   const root = scope?.wslWorkspace;
@@ -57,7 +57,7 @@ export function buildGameFridaSpawnRequest({ artifactPath: sourcePath, argv = []
 
 async function executeRequest(request, runWslTool) {
   const timeoutMs = request.timeoutMs ?? 30_000;
-  const result = await runWslTool(FRIDA_PYTHON, ['-c', FRIDA_WORKER_SOURCE], {
+  const result = await runWslTool(FRIDA_PYTHON, [FRIDA_WORKER_PATH], {
     input: `${JSON.stringify(request)}\n`,
     timeoutMs: timeoutMs + 15_000,
     maxOutputBytes: MAX_OUTPUT_BYTES,

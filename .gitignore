@@ -9,6 +9,7 @@ venv/
 
 # Node MCP runtime
 node_modules/
+.superpowers/
 
 # Local tooling and editors
 .codegraph/

@@ -234,6 +234,13 @@ test('doctor reports missing optional tools without making baseline health fail'
   assert.equal(result.categories[1].status, 'missing_dependency');
 });
 
+test('doctor marks wheel and root group memberships unsafe', async () => {
+  for (const group of ['wheel', 'root']) {
+    const result = await doctor({ manifest, runWsl: fakeWsl({ listOutput: 'kali-linux Running 2', userExists: true, groups: `ctfagent ${group}` }) });
+    assert.equal(result.account.status, 'unsafe');
+  }
+});
+
 test('doctor marks a root-UID ctfagent unsafe even without the sudo group', async () => {
   const result = await doctor({
     runWsl: fakeWsl({

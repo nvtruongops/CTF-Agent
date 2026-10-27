@@ -105,7 +105,7 @@ test('initScope rejects a workspace outside the ignored CTF workspace root', () 
       challengeId: 'escape',
       workspace: '..\\outside',
       targets: [],
-    }), /workspace root/i);
+    }), /workspace root|forward.slash/i);
   } finally {
     rmSync(projectRoot, { recursive: true, force: true });
   }

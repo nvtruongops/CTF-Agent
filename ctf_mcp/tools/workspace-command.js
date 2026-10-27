@@ -1,6 +1,6 @@
-import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 
-export const WORKSPACE_WORKER_SOURCE = readFileSync(new URL('./workspace_worker.py', import.meta.url), 'utf8');
+export const WORKSPACE_WORKER_PATH = fileURLToPath(new URL('./workspace_worker.py', import.meta.url));
 
 function decodeWorkerResult(result) {
   if (!result || typeof result !== 'object' || Array.isArray(result)) {
@@ -30,7 +30,7 @@ export async function runWorkspaceWorker(request, runWslTool, { timeoutMs, maxOu
     throw new RangeError('maxOutputBytes must be a positive integer');
   }
 
-  const transport = await runWslTool('python3', ['-c', WORKSPACE_WORKER_SOURCE], {
+  const transport = await runWslTool('python3', [WORKSPACE_WORKER_PATH], {
     input: `${JSON.stringify(request)}\n`,
     timeoutMs: timeoutMs + 10_000,
     maxOutputBytes: Math.ceil(maxOutputBytes * 4 / 3) + 8192,

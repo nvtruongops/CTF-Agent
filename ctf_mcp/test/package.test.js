@@ -13,8 +13,10 @@ const runtimeFiles = new Set([
   'ctf_mcp/doctor.js',
   'ctf_mcp/frida-runtime.js',
   'ctf_mcp/ide-setup.js',
+  'ctf_mcp/ide-plan.js',
   'ctf_mcp/learning.js',
   'ctf_mcp/manifest.js',
+  'ctf_mcp/paths.js',
   'ctf_mcp/scope.js',
   'ctf_mcp/server.js',
   'ctf_mcp/setup.js',
@@ -52,6 +54,10 @@ test('npm package contains only runtime and CTF guidance, never workspace or sec
     || path === 'README.md'
     || path === 'LICENSE'
     || path === 'DISCLOSURE'
+    || path === 'setup.ps1'
+    || path === 'scripts/setup-wsl.sh'
+    || path === 'scripts/launch-wsl.ps1'
+    || path === 'scripts/apply-ide-plan.ps1'
     || runtimeFiles.has(path)
     || /^\.agents\/skills\/ctf-[^/]+\/.+\.md$/i.test(path)
     || /^\.agents\/(references|rules)\/.+\.md$/i.test(path);
@@ -60,6 +66,9 @@ test('npm package contains only runtime and CTF guidance, never workspace or sec
   assert.ok(files.includes('ctf_mcp/cli.js'));
   assert.ok(files.includes('LICENSE'));
   assert.ok(files.includes('DISCLOSURE'));
+  assert.ok(files.includes('setup.ps1'));
+  assert.ok(files.includes('scripts/setup-wsl.sh'));
+  assert.ok(files.includes('scripts/launch-wsl.ps1'));
   assert.ok(files.includes('.agents/skills/ctf-solve-challenge/SKILL.md'));
   assert.ok(files.includes('.agents/skills/ctf-solve-report/SKILL.md'));
   assert.ok(files.some((path) => path.startsWith('.agents/skills/ctf-web/')));
@@ -81,7 +90,7 @@ test('Windows checkout preserves the CLI LF shebang that npm installs', () => {
   const root = mkdtempSync(path.join(os.tmpdir(), 'ctf-agent-checkout-'));
   try {
     const result = spawnSync('git', [
-      '-c', 'core.autocrlf=true', 'checkout-index',
+      '-c', 'core.autocrlf=true', '-c', `safe.directory=${repoRoot.replaceAll('\\', '/').replace(/\/$/, '')}`, 'checkout-index',
       `--prefix=${root.replaceAll('\\', '/')}/`, '--', 'ctf_mcp/cli.js',
     ], { cwd: repoRoot, encoding: 'utf8', timeout: 30_000 });
     assert.equal(result.status, 0, result.stderr);
@@ -104,6 +113,10 @@ test('package audit rejects packet artifacts and private-key material', () => {
     const validMetadata = { private: false, license: 'MIT', contentPolicy: { class: 'dual-use' }, files: ['DISCLOSURE'], publishConfig: { access: 'public' } };
     put('package.json', JSON.stringify(validMetadata));
     put('README.md');
+    put('setup.ps1');
+    put('scripts/setup-wsl.sh');
+    put('scripts/launch-wsl.ps1');
+    put('scripts/apply-ide-plan.ps1');
     put('LICENSE', 'MIT License\n');
     put('DISCLOSURE', 'Authorized CTF competitions and educational labs only.');
     put('.agents/skills/ctf-solve-challenge/SKILL.md');
@@ -155,9 +168,12 @@ test('publish lifecycle runs tests and package audit without invoking publish', 
   assert.equal(metadata.scripts['verify:package'], 'node scripts/verify-package.js');
 });
 
-test('release workflow verifies on Windows and only stages dual-use packages without a long-lived token', () => {
+test('release workflow gates staging on Linux runtime and Windows checks without a long-lived token', () => {
   const workflow = readFileSync(new URL('../../.github/workflows/publish.yml', import.meta.url), 'utf8');
   assert.match(workflow, /runs-on: windows-latest/);
+  assert.match(workflow, /runs-on: ubuntu-latest/);
+  assert.match(workflow, /needs: \[linux, windows\]/);
+  assert.match(workflow, /python -m pytest \.agents\/tests/);
   assert.match(workflow, /npm run prepublishOnly/);
   assert.match(workflow, /npm run verify:package/);
   assert.match(workflow, /npm stage publish/);

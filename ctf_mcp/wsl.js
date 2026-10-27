@@ -1,7 +1,19 @@
-import { spawn } from 'node:child_process';
+import { execFileSync, spawn } from 'node:child_process';
+import { readFileSync } from 'node:fs';
+import { userInfo } from 'node:os';
 
 const DEFAULT_TIMEOUT_MS = 30_000;
 const DEFAULT_MAX_OUTPUT_BYTES = 1_048_576;
+
+export function assertMcpAccount(account = {
+  uid: process.getuid(), username: userInfo().username,
+  groups: execFileSync('/usr/bin/id', ['-nG'], { encoding: 'utf8', timeout: 5000 }).trim().split(/\s+/),
+}) {
+  if (!Number.isInteger(account.uid) || account.uid === 0 || account.username !== 'ctfagent'
+    || !Array.isArray(account.groups) || account.groups.some((group) => ['sudo', 'wheel', 'root'].includes(group))) {
+    throw new Error('MCP requires the non-privileged ctfagent account, without sudo/wheel/root groups.');
+  }
+}
 
 export function decodeWslText(value) {
   const buffer = Buffer.isBuffer(value) ? value : Buffer.from(value ?? '');
@@ -93,6 +105,7 @@ export function runCommand(command, args, options = {}) {
         env,
         shell: false,
         windowsHide: true,
+        detached: process.platform === 'linux',
         stdio: ['pipe', 'pipe', 'pipe'],
       });
     } catch (error) {
@@ -105,11 +118,22 @@ export function runCommand(command, args, options = {}) {
     let truncated = false;
     let killSent = false;
     let settled = false;
+    let killTimer;
+
+    const signal = (name) => {
+      try {
+        if (process.platform === 'linux') process.kill(-child.pid, name);
+        else child.kill(name);
+      } catch (error) {
+        if (error.code !== 'ESRCH') child.kill(name);
+      }
+    };
 
     const terminate = () => {
       if (killSent || settled) return;
       killSent = true;
-      child.kill();
+      signal('SIGTERM');
+      killTimer = setTimeout(() => signal('SIGKILL'), 250);
     };
 
     const capture = (name) => (chunk) => {
@@ -140,13 +164,16 @@ export function runCommand(command, args, options = {}) {
       if (settled) return;
       settled = true;
       clearTimeout(timer);
+      clearTimeout(killTimer);
       reject(error);
     });
 
     child.once('close', (exitCode) => {
       if (settled) return;
+      if (killSent && process.platform === 'linux') signal('SIGKILL');
       settled = true;
       clearTimeout(timer);
+      clearTimeout(killTimer);
       resolve({
         exitCode,
         stdout: decode(Buffer.concat(output.stdout)),
@@ -161,8 +188,42 @@ export function runCommand(command, args, options = {}) {
   });
 }
 
-export function runWsl(args, options = {}) {
-  return runCommand('wsl.exe', args, { ...options, decode: decodeWslText });
+export async function runWsl(args, options = {}) {
+  if (process.platform === 'linux') {
+    if (args[0] === '--status' || args[0] === '--list') {
+      const kernel = readFileSync('/proc/sys/kernel/osrelease', 'utf8');
+      const kali = /^ID=kali$/m.test(readFileSync('/etc/os-release', 'utf8'));
+      const wsl2 = /microsoft.*wsl2/i.test(kernel);
+      return { exitCode: 0, stdout: args[0] === '--status'
+        ? `Default Version: ${wsl2 ? 2 : 1}\n`
+        : (kali ? `NAME STATE VERSION\nkali-linux Running ${wsl2 ? 2 : 1}\n` : 'NAME STATE VERSION\n'), stderr: '', timedOut: false, truncated: false };
+    }
+    const index = args.indexOf('--exec');
+    if (index < 0 || args[args.indexOf('--distribution') + 1] !== 'kali-linux') {
+      throw new TypeError('Run WSL installation/conversion from the Windows bootstrap.');
+    }
+    const user = args[args.indexOf('--user') + 1];
+    const [executable, ...commandArgs] = args.slice(index + 1);
+    const env = { ...process.env, ...options.env, PATH: '/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin' };
+    if (user === 'ctfagent' && userInfo().username !== 'ctfagent') {
+      if (process.getuid() !== 0) throw new Error('Tool execution requires the non-sudo ctfagent account.');
+      return runCommand('/usr/sbin/runuser', ['-u', 'ctfagent', '--', executable, ...commandArgs], { ...options, env });
+    }
+    if (user === 'root' && process.getuid() !== 0 && !['apt-cache', 'python3', 'id', 'install'].includes(executable)) {
+      throw new Error('Provisioning requires root; run setup.ps1 -Apply from Windows.');
+    }
+    return runCommand(executable, commandArgs, { ...options, env });
+  }
+  const prefix = args.slice(0, args.indexOf('--exec') + 1);
+  const translated = [];
+  for (const arg of args) {
+    if (/^[a-z]:[\\/]/i.test(arg)) {
+      const conversion = await runCommand('wsl.exe', [...prefix, 'wslpath', '-a', '-u', arg], { timeoutMs: 10_000, maxOutputBytes: 8192, decode: decodeWslText });
+      if (conversion.exitCode !== 0 || conversion.timedOut || conversion.truncated) throw new Error('Windows path could not be translated to WSL.');
+      translated.push(conversion.stdout.trim());
+    } else translated.push(arg);
+  }
+  return runCommand('wsl.exe', translated, { ...options, decode: decodeWslText });
 }
 
 export async function runWslTool(executable, args, options = {}) {

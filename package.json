@@ -40,6 +40,7 @@
     "ctf-agent": "node ctf_mcp/cli.js",
     "test": "node --test ctf_mcp/test/*.test.js",
     "verify:package": "node scripts/verify-package.js",
+    "verify:wsl": "node scripts/verify-wsl.js",
     "prepack": "node scripts/package-audit.js",
     "prepublishOnly": "npm test && node scripts/package-audit.js"
   },
@@ -49,9 +50,13 @@
     "ctf_mcp/tools/*.js",
     "ctf_mcp/tools/*.py",
     "DISCLOSURE",
-    ".agents/skills/**/*.md",
-    ".agents/references/**/*.md",
-    ".agents/rules/**/*.md"
+    "setup.ps1",
+    "scripts/setup-wsl.sh",
+    "scripts/launch-wsl.ps1",
+    "scripts/apply-ide-plan.ps1",
+    ".agents/skills",
+    ".agents/references",
+    ".agents/rules"
   ],
   "dependencies": {
     "@modelcontextprotocol/server": "2.3.1",

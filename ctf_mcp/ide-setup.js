@@ -34,9 +34,10 @@ function mergeJson(text, client, propertyPath, entry) {
 function isCtfAgentServer(server) {
   if (!server || typeof server !== 'object') return false;
   const command = Array.isArray(server.command) ? server.command : [server.command, ...(server.args ?? [])];
-  return command[0] === 'npx'
-    && command.some((argument) => typeof argument === 'string' && /^(?:@nvtruongops\/)?ctf-agent(?:-mcp)?@/.test(argument))
-    && command.at(-1) === 'mcp';
+  return command.at(-1) === 'mcp' && (
+    (command[0] === 'npx' && command.some((argument) => typeof argument === 'string' && /^(?:@nvtruongops\/)?ctf-agent(?:-mcp)?@/.test(argument)))
+    || (command[0] === 'powershell.exe' && command.includes('-File') && /(?:^|[\\/])ctf-agent\.ps1$/i.test(command[command.indexOf('-File') + 1] ?? ''))
+  );
 }
 
 function replaceTomlServer(text, entry) {
@@ -68,15 +69,18 @@ function replaceTomlServer(text, entry) {
   return `${text.slice(0, start)}${serialized}\n${text.slice(end).replace(/^\s*\n/, '')}`;
 }
 
-function configFor(client, homeDir, packageVersion, existingText) {
-  const command = {
+function configFor(client, homeDir, packageVersion, existingText, windowsLauncher) {
+  const command = windowsLauncher ? {
+    command: 'powershell.exe',
+    args: ['-NoLogo', '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', windowsLauncher, 'mcp'],
+  } : {
     command: 'npx',
     args: ['-y', `${packageName}@${packageVersion}`, 'mcp'],
   };
   if (client === 'opencode') {
     const entry = {
       type: 'local',
-      command: ['npx', '-y', `${packageName}@${packageVersion}`, 'mcp'],
+      command: [command.command, ...command.args],
       cwd: '.',
       environment: {
         CTF_MCP_CTFD_URL: '{env:CTF_MCP_CTFD_URL}',
@@ -168,11 +172,14 @@ function clientRoots(client, homeDir) {
   return { skills: path.join(homeDir, '.agents', 'skills'), support: path.join(homeDir, '.agents') };
 }
 
-export function buildIdeSetupPlan({ clients, homeDir, packageVersion, installSkills = true }) {
+export function buildIdeSetupPlan({ clients, homeDir, packageVersion, installSkills = true, windowsLauncher }) {
   if (!Array.isArray(clients) || clients.length === 0 || clients.some((client) => !clientIds.has(client))) {
     throw new TypeError('select one or more supported clients: opencode, claude-code, codex, antigravity');
   }
   if (typeof homeDir !== 'string' || !path.isAbsolute(homeDir)) throw new TypeError('homeDir must be an absolute path');
+  if (windowsLauncher !== undefined && (typeof windowsLauncher !== 'string' || !path.win32.isAbsolute(windowsLauncher) || /[\0\r\n]/.test(windowsLauncher) || !windowsLauncher.endsWith('ctf-agent.ps1'))) {
+    throw new TypeError('windowsLauncher must be an absolute Windows ctf-agent.ps1 path');
+  }
   if (typeof packageVersion !== 'string' || !/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/.test(packageVersion)) {
     throw new TypeError('packageVersion must be a semantic version');
   }
@@ -189,7 +196,7 @@ export function buildIdeSetupPlan({ clients, homeDir, packageVersion, installSki
           : path.join(homeDir, '.gemini', 'config', 'mcp_config.json');
     const originalContent = readExisting(configPath);
     const emptyConfig = client === 'codex' ? '' : '{}\n';
-    const configuration = configFor(client, homeDir, packageVersion, originalContent ?? emptyConfig);
+    const configuration = configFor(client, homeDir, packageVersion, originalContent ?? emptyConfig, windowsLauncher);
     operations.set(configPath, {
       client,
       clients: [client],

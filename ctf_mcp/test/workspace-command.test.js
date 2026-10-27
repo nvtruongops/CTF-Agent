@@ -28,7 +28,8 @@ test('runWorkspaceWorker sends JSON and decodes bounded worker output', async ()
   );
 
   assert.equal(observed.executable, 'python3');
-  assert.deepEqual(observed.args.slice(0, 1), ['-c']);
+  assert.match(observed.args[0], /workspace_worker\.py$/);
+  assert.ok(observed.args.join(' ').length < 4096, 'worker source must not be passed through argv');
   assert.deepEqual(JSON.parse(observed.options.input), { mode: 'command', executable: 'strings' });
   assert.equal(observed.options.timeoutMs, 15_000);
   assert.equal(response.result.stdout, 'candidate\n');

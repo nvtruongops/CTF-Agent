@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 import { Client } from '@modelcontextprotocol/client';
 import { StdioClientTransport } from '@modelcontextprotocol/client/stdio';
 
-assert.equal(process.platform, 'win32', 'Verify the supported Windows host, not WSL.');
+assert.ok(['win32', 'linux'].includes(process.platform), 'Verify on Windows or Linux.');
 assert.ok(process.env.npm_execpath, 'Run this check with npm run verify:package.');
 const root = fileURLToPath(new URL('../', import.meta.url));
 const temp = mkdtempSync(path.join(os.tmpdir(), 'ctf-agent-package-'));

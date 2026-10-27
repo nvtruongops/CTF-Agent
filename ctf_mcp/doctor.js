@@ -108,7 +108,7 @@ export async function doctor({
       account = { status: 'missing', groups: [] };
     } else {
       const groups = groupsResult.stdout.trim().split(/\s+/).filter(Boolean);
-      const unsafe = Number(uidResult.stdout.trim()) === 0 || groups.includes('sudo');
+      const unsafe = Number(uidResult.stdout.trim()) === 0 || groups.some((group) => ['sudo', 'wheel', 'root'].includes(group));
       account = {
         status: unsafe ? 'unsafe' : (groupsResult.exitCode !== 0 || groupsResult.skipped ? 'unknown' : 'ready'),
         groups,

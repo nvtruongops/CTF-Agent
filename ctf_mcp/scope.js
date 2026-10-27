@@ -1,6 +1,7 @@
 import { existsSync, lstatSync, mkdirSync, readFileSync, realpathSync, statSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { isIP } from 'node:net';
+import { nativePath } from './paths.js';
 
 function normalizeHost(host) {
   const normalized = String(host).replace(/^\[|\]$/g, '').replace(/\.$/, '').toLowerCase();
@@ -123,16 +124,16 @@ export function assertWorkspacePath(value, scope) {
 }
 
 function isInside(root, candidate) {
-  const relative = path.win32.relative(root, candidate);
+  const relative = path.relative(root, candidate);
   return relative === '' || (
     relative !== '..'
-    && !relative.startsWith(`..${path.win32.sep}`)
-    && !path.win32.isAbsolute(relative)
+    && !relative.startsWith(`..${path.sep}`)
+    && !path.isAbsolute(relative)
   );
 }
 
 function canonicalPath(value) {
-  return path.win32.normalize(realpathSync(value).replace(/^\\\\\?\\/, ''));
+  return path.normalize(realpathSync(nativePath(value)).replace(/^\\\\\?\\/, ''));
 }
 
 function validateChallengeId(value) {
@@ -143,7 +144,8 @@ function validateChallengeId(value) {
 }
 
 export function initScope({ projectRoot, challengeId, workspace, targets = [], sourceRoots = [] }) {
-  if (typeof projectRoot !== 'string' || !path.win32.isAbsolute(projectRoot)) {
+  projectRoot = nativePath(projectRoot);
+  if (!path.isAbsolute(projectRoot)) {
     throw new TypeError('projectRoot must be an absolute path');
   }
   const id = validateChallengeId(challengeId);
@@ -153,10 +155,10 @@ export function initScope({ projectRoot, challengeId, workspace, targets = [], s
     return [`${parsed.host}:${parsed.port}`, parsed];
   })).values()];
   const root = canonicalPath(projectRoot);
-  const workspaceRoot = path.win32.resolve(root, '.ctf-workspaces');
-  const workspacePath = path.win32.resolve(root, workspace || path.win32.join('.ctf-workspaces', id));
-  const expectedWorkspace = path.win32.resolve(workspaceRoot, id);
-  if (workspacePath.toLowerCase() !== expectedWorkspace.toLowerCase()) {
+  const workspaceRoot = path.resolve(root, '.ctf-workspaces');
+  const workspacePath = path.resolve(root, nativePath(workspace || path.join('.ctf-workspaces', id)));
+  const expectedWorkspace = path.resolve(workspaceRoot, id);
+  if (path.relative(expectedWorkspace, workspacePath) !== '') {
     throw new TypeError('workspace root must be inside .ctf-workspaces/<challenge-id>');
   }
 
@@ -173,8 +175,8 @@ export function initScope({ projectRoot, challengeId, workspace, targets = [], s
     throw new TypeError('workspace directory cannot be a symlink or junction');
   }
 
-  const scopeDirectory = path.win32.join(root, '.ctf-agent');
-  const scopePath = path.win32.join(scopeDirectory, 'scope.json');
+  const scopeDirectory = path.join(root, '.ctf-agent');
+  const scopePath = path.join(scopeDirectory, 'scope.json');
   if (existsSync(scopeDirectory) && lstatSync(scopeDirectory).isSymbolicLink()) {
     throw new TypeError('scope directory cannot be a symlink or junction');
   }
@@ -188,7 +190,7 @@ export function initScope({ projectRoot, challengeId, workspace, targets = [], s
   }
   const roots = sourceRoots.length > 0 ? sourceRoots : [workspacePath];
   const canonicalRoots = [...new Set(roots.map((sourceRoot) => {
-    const resolved = path.win32.resolve(root, sourceRoot);
+    const resolved = path.resolve(root, nativePath(sourceRoot));
     const sourceStat = statSync(resolved);
     if (!sourceStat.isDirectory()) throw new TypeError('each source root must be an existing directory');
     return canonicalPath(resolved);
@@ -197,7 +199,7 @@ export function initScope({ projectRoot, challengeId, workspace, targets = [], s
   const scope = {
     schemaVersion: 1,
     challengeId: id,
-    workspace: path.win32.relative(root, canonicalWorkspace).split(path.win32.sep).join('/'),
+    workspace: path.relative(root, canonicalWorkspace).split(path.sep).join('/'),
     wslWorkspace: `/home/ctfagent/ctf-workspaces/${id}`,
     sourceRoots: canonicalRoots,
     targets: normalizedTargets,
@@ -209,12 +211,13 @@ export function initScope({ projectRoot, challengeId, workspace, targets = [], s
 }
 
 export function loadScope(projectRoot) {
-  if (typeof projectRoot !== 'string' || !path.win32.isAbsolute(projectRoot)) {
+  projectRoot = nativePath(projectRoot);
+  if (!path.isAbsolute(projectRoot)) {
     throw new TypeError('projectRoot must be an absolute path');
   }
   const root = canonicalPath(projectRoot);
-  const scopeDirectory = path.win32.join(root, '.ctf-agent');
-  const scopePath = path.win32.join(scopeDirectory, 'scope.json');
+  const scopeDirectory = path.join(root, '.ctf-agent');
+  const scopePath = path.join(scopeDirectory, 'scope.json');
   if (existsSync(scopeDirectory) && lstatSync(scopeDirectory).isSymbolicLink()) {
     const error = new Error('scope directory cannot be a symlink or junction');
     error.code = 'INVALID_SCOPE';
@@ -242,9 +245,9 @@ export function loadScope(projectRoot) {
 
   try {
     const challengeId = validateChallengeId(scope.challengeId);
-    const expectedWorkspace = path.win32.resolve(root, '.ctf-workspaces', challengeId);
-    const actualWorkspace = path.win32.resolve(root, scope.workspace);
-    if (actualWorkspace.toLowerCase() !== expectedWorkspace.toLowerCase()) {
+    const expectedWorkspace = path.resolve(root, '.ctf-workspaces', challengeId);
+    const actualWorkspace = path.resolve(root, scope.workspace);
+    if (path.relative(expectedWorkspace, actualWorkspace) !== '') {
       throw new Error('workspace path does not match the challenge ID');
     }
     if (scope.wslWorkspace !== `/home/ctfagent/ctf-workspaces/${challengeId}`) {
@@ -261,7 +264,7 @@ export function loadScope(projectRoot) {
       return parsed;
     });
     const sourceRoots = scope.sourceRoots.map((sourceRoot) => {
-      if (typeof sourceRoot !== 'string' || !path.win32.isAbsolute(sourceRoot)) {
+      if (typeof sourceRoot !== 'string' || !path.isAbsolute(nativePath(sourceRoot))) {
         throw new Error('source root must be an absolute path');
       }
       const canonical = canonicalPath(sourceRoot);

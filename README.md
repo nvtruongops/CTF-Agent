@@ -4,45 +4,50 @@ CTF-Agent combines host-neutral CTF skills under `.agents/` with one project-loc
 
 ## Requirements
 
-- Node.js 24.11 or later on Windows.
-- WSL2 with Kali Linux for the bundled tool adapters. The setup command can install Kali when it is missing.
-- Kali mirror access for APT packages and PyPI access to install the pinned Frida wheel in a dedicated virtual environment.
+- Windows PowerShell and WSL2 with the `kali-linux` distribution. Windows Node/Python are **not** needed for clone setup or MCP use.
+- Node.js >=24.11, npm, Python3 and venv **inside Kali**; the bootstrap installs these through APT when missing.
+- Kali mirror, public npm dependency and PyPI access. Frida uses a dedicated user-owned virtual environment, not system pip.
 - OpenCode or another MCP-compatible host. The setup command registers the MCP server in the selected host's user-level configuration.
 
 The server uses a non-sudo WSL account named `ctfagent`. WSL and a separate Linux account are not a sandbox: network access and host integration may still be available. Use only organizer-authorized targets and review the tool scope before active scans.
 
-## Install and check
+## Clone, install and check
 
-The npm package is `ctf-agent`. This checkout prepares `0.1.0`; it is not publicly installable yet. On 2026-10-27, the public registry exposed only the `0.0.0-stage` placeholder, not a working MCP. After the maintainer approves a release and npm makes that version public, install and initialize it from any challenge project:
-
-```powershell
-npm install ctf-agent@0.1.0
-npx ctf-agent setup --client opencode --dry-run
-npx ctf-agent setup --client opencode --yes
-npx ctf-agent doctor --json
-npx ctf-agent setup --plan --profile full
-```
-
-Until that release is public, inspect the same setup from a local checkout:
+Clone-first setup installs a curated local `ctf-agent@0.1.0` tarball into Kali. It does **not** download `ctf-agent` from npm or require npm login; public npm dependencies are still downloaded. The published npm installation channel is deferred.
 
 ```powershell
-npm install
-npm run ctf-agent -- setup --client opencode --dry-run
-npm run ctf-agent -- doctor --json
-npm run ctf-agent -- setup --plan --profile full
+git clone https://github.com/nvtruongops/CTF-Agent.git
+cd CTF-Agent
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\setup.ps1 -Client opencode
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\setup.ps1 -Apply -Client opencode
 ```
 
-The IDE setup previews configuration and skill destinations, then asks before writing. Pass `--yes` only when the preview is approved; `--dry-run` never writes. Add repeatable `--client` values for `claude-code`, `codex`, or `antigravity`, or use `--all-detected` to select clients with existing configuration directories. `--skills=false` skips skill installation. Existing config files are backed up as `.bak` (with a numbered suffix if needed); malformed configs, unsafe paths, name collisions, or files changed after preview are rejected. Restart the selected IDE after setup.
+The first command previews without writing. `-Apply` provisions Kali, installs the local runtime, verifies the selected tools, then backs up and merges the chosen Windows agent's configuration and CTF guidance. `-Client` accepts `opencode`, `claude-code`, `codex`, `antigravity` (comma-separated when calling `./setup.ps1` from PowerShell). Reload the agent after setup.
 
-The installer registers the MCP server in user-level configuration and installs CTF skills/references/rules under the client's global skills directory. MCP commands inherit the IDE's active workspace; setup never stores an npm-cache path as the project root. The optional CTFd environment variables remain environment references, not stored secret values.
+`-Profile full` is the baseline, not every optional tool. Topic profiles include `web`, `reverse`, `crypto`, `pwn`, `forensics`, `exploitation`, `game_hacking`, `misc`, `osint`, `steganography`, `hardware`, and `competition`. Missing optional tools remain visible in doctor output. Setup keeps unchanged runtime/configuration files and creates numbered `.bak` backups when Windows files change.
 
-Review the exact Kali and package plan before applying it (this remains separate from IDE setup):
+If Kali/WSL2 is missing, setup reports `pending_wsl2` and stops before configuration writes. Install/initialize Kali first (an elevated terminal and reboot may be necessary):
 
 ```powershell
-npm run ctf-agent -- setup --apply --profile full
+wsl --install --distribution kali-linux --no-launch
+wsl --list --verbose
+# For an existing WSL1 Kali only, explicitly convert it:
+wsl --set-version kali-linux 2
 ```
 
-Kali installation may require an elevated terminal. Setup does not elevate itself, change the global WSL default distribution, or install the entire Kali metapackage. If WSL needs a reboot or first-run step, the command reports the next action; rerun `doctor` afterward.
+Setup does not self-elevate, reset distributions, change WSL defaults or change global PowerShell execution policy. `-ExecutionPolicy Bypass` applies only to the invoked process. Malformed configs, unrelated `ctf-agent` entries, redirected Windows destinations and stale merge plans are rejected. On failure, fix the reported prerequisite/mirror/permission issue and rerun; do not delete existing scopes or distro data.
+
+The stable Windows launcher is `$env:LOCALAPPDATA\CTF-Agent\ctf-agent.ps1`; it starts `/usr/bin/node` as non-sudo `ctfagent` in Kali, using `/home/ctfagent/.local/share/ctf-agent/runtime/node_modules/ctf-agent/ctf_mcp/cli.js`. No Windows Node/npm or npm-cache path is used. Active project paths and optional CTFd environment variables are forwarded process-locally; credentials are not stored in configuration.
+
+After setup, run checks from any local challenge project:
+
+```powershell
+$ctf = Join-Path $env:LOCALAPPDATA 'CTF-Agent\ctf-agent.ps1'
+& $ctf doctor --json
+& $ctf setup --plan --profile full
+```
+
+Reapply `setup.ps1 -Apply` from the checkout to update the installed runtime. Existing `.ctf-agent/scope.json` files are not rewritten; old absolute Windows source roots are translated and validated at use time. Use local drive paths, not UNC/network locations.
 
 ## Start a challenge
 
@@ -50,14 +55,14 @@ Kali installation may require an elevated terminal. Setup does not elevate itsel
 2. Declare a challenge workspace and exact organizer-provided network targets:
 
 ```powershell
-npm run ctf-agent -- scope init `
+& $ctf scope init `
   --challenge web-01 `
   --workspace .ctf-workspaces/web-01 `
-  --source-root .\challenge-inputs `
+  --source-root ./challenge-inputs `
   --target challenge.example:8080
 ```
 
-3. Open this repository in OpenCode with the CTF-Agent MCP registered in your user-level config. The repository does not ship a project-local OpenCode config.
+3. Open that challenge project in your selected agent with CTF-Agent registered in user-level config. Each project's local scope is separate; the repository does not ship a project-local OpenCode config.
 4. Use `ctf_tool_status` to see CTF tool readiness. Import individual files with `ctf_workspace_import`; the server copies them into the WSL workspace and verifies their hashes.
 
 Tools are grouped by CTF category. Examples include Nmap/SQLmap/FFUF for scoped web challenges, Z3, local decoders, and offline encoding/XOR candidate ranking for crypto, GDB/pwntools for local PWN challenges, TShark PCAP field extraction and stream following plus Binwalk/ExifTool for forensics, Steghide for stego, and sigrok-cli for saved hardware recordings. Workspace artifact paths are opened through WSL no-follow checks; PWN binaries are staged to a private copy before execution. Reverse Engineering provides scoped ELF metadata/symbol/string inspection, objdump disassembly, and fixed GDB inspection. Game Hacking provides one-shot Frida instrumentation of a Linux executable in the challenge workspace. Kali's ptrace policy prevents reliable attachment to unrelated existing processes, so this MVP uses spawn-only instrumentation. Missing dependencies appear in the readiness report.
@@ -72,9 +77,9 @@ See [the CTF MCP tool map](.agents/references/ctf-mcp-tool-map.md) and [the skil
 
 The package explicitly sets `publishConfig.access` to `public`, keeps a curated `files` allowlist, and declares its CTF tooling as dual-use with a root [`DISCLOSURE`](DISCLOSURE). This follows REA's packaging discipline, not its product configuration. CTF skills, Kali profiles, the non-sudo `ctfagent` account, scoped tools and explicit setup confirmation remain intact. Policy declaration is not npm approval.
 
-Verify from **Windows PowerShell**, not a Linux/WSL Node process:
+For development/release checks, install native Node dependencies in Kali and run:
 
-```powershell
+```bash
 npm ci
 npm run prepublishOnly
 npm run verify:package
@@ -85,7 +90,7 @@ npm pack --dry-run --json
 
 ### Stage in CI, approve with 2FA
 
-[npm's dual-use policy](https://docs.npmjs.com/policies/dual-use) prohibits direct CI publishing with OIDC or a bypass-2FA token. `.github/workflows/publish.yml` therefore verifies on Windows and runs **`npm stage publish` only**. It uses npm 11.21.1 and OIDC, with no `NPM_TOKEN` secret. A GitHub release or manual workflow dispatch stages a candidate; neither makes it publicly installable.
+[npm's dual-use policy](https://docs.npmjs.com/policies/dual-use) prohibits direct CI publishing with OIDC or a bypass-2FA token. `.github/workflows/publish.yml` gates staging on Linux runtime/package/Python tests and Windows bootstrap/unit tests, then runs **`npm stage publish` only**. Hosted CI does not claim live Kali WSL verification. It uses npm 11.21.1 and OIDC, with no `NPM_TOKEN` secret. A GitHub release or manual workflow dispatch stages a candidate; neither makes it publicly installable. No publication is needed for clone setup.
 
 Before running that workflow, the package owner must configure [npm trusted publishing](https://docs.npmjs.com/trusted-publishers) for `ctf-agent`:
 
@@ -103,20 +108,24 @@ npm stage approve <stage-id>
 npm view ctf-agent@0.1.0 version dist.integrity --registry=https://registry.npmjs.org
 ```
 
-Approval requires the maintainer's 2FA. npm may still validate/review the package; a successful staging run is not publication. After the public version lookup succeeds, test `npm install ctf-agent@0.1.0` in a clean project before announcing availability. The IDE installer pins MCP launches to the installed package version, so its `npx` launcher also requires that version to be public. No credentials are stored in the repository. Account configuration, 2FA and npm review cannot be supplied by repository metadata alone.
+Approval requires the maintainer's 2FA. npm may still validate/review the package; a successful staging run is not publication. The future npm entry flow must reuse the WSL runtime and be verified separately before announcing availability. Clone setup already works without that release. No credentials are stored in the repository. Account configuration, 2FA and npm review cannot be supplied by repository metadata alone.
 
 ## Development checks
 
 Set up the repository-local Python test environment once:
 
-```powershell
-python -m venv .venv
-.\.venv\Scripts\python.exe -m pip install -r requirements-dev.txt
+```bash
+python3 -m venv .venv
+.venv/bin/python -m pip install -r requirements-dev.txt
 ```
 
 Run the test suites from the repository root:
 
-```powershell
+```bash
 npm test
-.\.venv\Scripts\python.exe -m pytest .agents/tests
+.venv/bin/python -m pytest .agents/tests
+# On the provisioned Kali host as ctfagent:
+CTF_AGENT_RUN_WSL_INTEGRATION=1 npm test
 ```
+
+Windows launcher regression tests run with `npm test` under Windows Node (development only). After clone setup, `npm run verify:wsl` on Windows exercises the installed launcher with a temporary Unicode/spaces project, MCP catalog, file SHA-256, pwntools, Z3, ExifTool and out-of-scope rejection. It never scans a public target.

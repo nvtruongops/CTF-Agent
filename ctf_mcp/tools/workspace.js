@@ -1,31 +1,32 @@
 import { createHash } from 'node:crypto';
 import { closeSync, fstatSync, lstatSync, openSync, readSync, realpathSync, statSync } from 'node:fs';
 import path from 'node:path';
+import { nativePath } from '../paths.js';
 import { runWsl as defaultRunWsl } from '../wsl.js';
 import * as z from 'zod/v4';
 import { assertWorkspacePath, loadScope } from '../scope.js';
-import { WORKSPACE_WORKER_SOURCE } from './workspace-command.js';
+import { WORKSPACE_WORKER_PATH } from './workspace-command.js';
 
 const DEFAULT_MAX_IMPORT_BYTES = 256 * 1024 * 1024;
 const DEFAULT_TIMEOUT_MS = 30_000;
 const MAX_RESULT_BYTES = 4096;
 const MAX_WORKSPACE_WRITE_BYTES = 256 * 1024 * 1024;
 function canonicalHostPath(value) {
-  return path.win32.normalize(realpathSync(value).replace(/^\\\\\?\\/, ''));
+  return path.normalize(realpathSync(nativePath(value)).replace(/^\\\\\?\\/, ''));
 }
 
 function isInside(root, candidate) {
-  const relative = path.win32.relative(root, candidate);
+  const relative = path.relative(root, candidate);
   return relative === '' || (
     relative !== '..'
-    && !relative.startsWith(`..${path.win32.sep}`)
-    && !path.win32.isAbsolute(relative)
+    && !relative.startsWith(`..${path.sep}`)
+    && !path.isAbsolute(relative)
   );
 }
 
 function safeRelativePath(root, file) {
-  const relative = path.win32.relative(root, file);
-  if (!relative || relative === '..' || relative.startsWith(`..${path.win32.sep}`) || path.win32.isAbsolute(relative)) {
+  const relative = path.relative(root, file);
+  if (!relative || relative === '..' || relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative)) {
     throw new Error('Source path is outside an allowed source root.');
   }
   const segments = relative.split(/[\\/]+/);
@@ -93,7 +94,7 @@ async function writeWorkspaceBytesInternal({
   const sha256 = createHash('sha256').update(bytes).digest('hex');
   const result = await runWsl([
     '--distribution', 'kali-linux', '--user', 'ctfagent', '--exec',
-    'python3', '-c', WORKSPACE_WORKER_SOURCE, 'write', scope.wslWorkspace, destination, String(maxBytes),
+    'python3', WORKSPACE_WORKER_PATH, 'write', scope.wslWorkspace, destination, String(maxBytes),
   ], { input: bytes, timeoutMs, maxOutputBytes: MAX_RESULT_BYTES });
   if (result.exitCode !== 0 || result.timedOut || result.truncated) {
     throw new Error(`${operation} failed: ${result.stderr || 'WSL transfer did not complete.'}`);
@@ -122,7 +123,8 @@ export async function importWorkspaceFile({
   maxImportBytes = DEFAULT_MAX_IMPORT_BYTES,
   timeoutMs = DEFAULT_TIMEOUT_MS,
 } = {}) {
-  if (typeof sourcePath !== 'string' || !path.win32.isAbsolute(sourcePath)) {
+  sourcePath = nativePath(sourcePath);
+  if (!path.isAbsolute(sourcePath)) {
     throw new TypeError('sourcePath must be an absolute path');
   }
   if (!Number.isSafeInteger(maxImportBytes) || maxImportBytes < 1) {

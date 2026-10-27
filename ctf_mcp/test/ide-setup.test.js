@@ -1,8 +1,38 @@
 import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
+
+test('bootstrap IPC preserves Unicode content and Windows destinations through ASCII-only output', () => {
+  const homeDir = mkdtempSync(path.join(os.tmpdir(), 'ctf unicode '));
+  try {
+    mkdirSync(path.join(homeDir, '.config', 'opencode'), { recursive: true });
+    writeFileSync(path.join(homeDir, '.config', 'opencode', 'opencode.json'), '{"name":"Tiếng Việt"}\n');
+    const result = spawnSync(process.execPath, [fileURLToPath(new URL('../ide-plan.js', import.meta.url)), 'opencode'], {
+      encoding: 'utf8', maxBuffer: 16 * 1024 * 1024, env: { ...process.env, CTF_AGENT_WINDOWS_HOME: homeDir, CTF_AGENT_WINDOWS_HOME_NATIVE: 'C:\\Users\\Nguyễn', CTF_AGENT_WINDOWS_LAUNCHER: 'C:\\Local\\ctf-agent.ps1' },
+    });
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(/[^\x00-\x7f]/.test(result.stdout), false, 'IPC must be ASCII-only for legacy Windows PowerShell');
+    const [config] = JSON.parse(result.stdout);
+    assert.equal(config.path, 'C:\\Users\\Nguyễn\\.config\\opencode\\opencode.json');
+    assert.equal(JSON.parse(config.content).name, 'Tiếng Việt');
+  } finally { rmSync(homeDir, { recursive: true, force: true }); }
+});
+
+test('Windows agents use a stable local WSL launcher without a public npm package', () => {
+  const homeDir = mkdtempSync(path.join(os.tmpdir(), 'ctf-wsl-ide-'));
+  try {
+    const launcher = 'C:\\Users\\Example User\\AppData\\Local\\CTF-Agent\\ctf-agent.ps1';
+    const plan = buildIdeSetupPlan({ clients: ['opencode'], homeDir, packageVersion: '0.1.0', installSkills: false, windowsLauncher: launcher });
+    const entry = JSON.parse(plan[0].content).mcp.servers['ctf-agent'];
+    assert.deepEqual(entry.command, ['powershell.exe', '-NoLogo', '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', launcher, 'mcp']);
+    assert.equal(entry.cwd, '.');
+    assert.doesNotMatch(plan[0].content, /npx|ctf-agent@/);
+  } finally { rmSync(homeDir, { recursive: true, force: true }); }
+});
 import { parse as parseToml } from 'smol-toml';
 import { applyIdeSetupPlan, buildIdeSetupPlan } from '../ide-setup.js';
 
