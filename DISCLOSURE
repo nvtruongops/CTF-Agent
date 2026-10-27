@@ -1,0 +1,16 @@
+# Dual-Use Content Disclosure
+
+`ctf-agent` is software for authorized Capture The Flag (CTF) competitions and
+educational security labs. It provides agent-facing instructions and MCP tools
+for challenge-scoped web and network testing, binary reverse engineering,
+forensics, cryptography exercises, and game-hacking challenges. Some included
+techniques and tools are dual-use and could be misused outside those settings.
+
+Use the package only on challenge assets and systems that you own or that the
+competition organizer has explicitly authorized. Set and review the declared
+challenge scope before active network testing. Do not use it to access systems
+without authorization, steal credentials, deploy malware, or persist on systems.
+
+CTF-Agent's scope checks and WSL account are guardrails, not a security sandbox.
+The host and WSL environment may retain network access and host integration;
+users remain responsible for authorization and for reviewing tool actions.

@@ -1,4 +1,4 @@
-name: Publish to npm
+name: Verify and stage npm release
 
 on:
   release:
@@ -15,8 +15,8 @@ permissions:
   id-token: write
 
 jobs:
-  publish:
-    runs-on: ubuntu-latest
+  stage:
+    runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
 
@@ -25,10 +25,15 @@ jobs:
           node-version: 24.x
           registry-url: 'https://registry.npmjs.org'
 
+      - run: npm install --global npm@11.21.1
+
       - run: npm ci
 
-      - run: npm test
+      - run: npm run prepublishOnly
 
-      - run: npm publish --tag ${{ github.event.inputs.tag || 'latest' }} --provenance --access public
+      - run: npm run verify:package
+
+      - name: Stage for maintainer review and 2FA approval
+        run: npm stage publish --tag "$env:NPM_TAG" --provenance --access public
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_TAG: ${{ github.event.inputs.tag || 'latest' }}

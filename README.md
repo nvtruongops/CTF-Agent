@@ -13,7 +13,17 @@ The server uses a non-sudo WSL account named `ctfagent`. WSL and a separate Linu
 
 ## Install and check
 
-The npm package is `ctf-agent`. At the time of this update, npm shows version `0.1.0` as **Validating** and only the `0.0.0-stage` placeholder is public. `npm i ctf-agent` is the intended install command, but the working MCP is not available from npm until validation finishes. For now, inspect the setup plan from a local checkout with:
+The npm package is `ctf-agent`. This checkout prepares `0.1.0`; it is not publicly installable yet. On 2026-10-27, the public registry exposed only the `0.0.0-stage` placeholder, not a working MCP. After the maintainer approves a release and npm makes that version public, install and initialize it from any challenge project:
+
+```powershell
+npm install ctf-agent@0.1.0
+npx ctf-agent setup --client opencode --dry-run
+npx ctf-agent setup --client opencode --yes
+npx ctf-agent doctor --json
+npx ctf-agent setup --plan --profile full
+```
+
+Until that release is public, inspect the same setup from a local checkout:
 
 ```powershell
 npm install
@@ -60,9 +70,40 @@ See [the CTF MCP tool map](.agents/references/ctf-mcp-tool-map.md) and [the skil
 
 ## npm release
 
-The package declares the MIT license. Review the exact archive with `npm pack --dry-run --json`. `prepublishOnly` runs the full test suite and package audit; `prepack` independently audits the tarball contents. npm currently reports `ctf-agent@0.1.0` as **Validating**; update this note when npm marks the version Published. No npm credentials are stored by this repository.
+The package explicitly sets `publishConfig.access` to `public`, keeps a curated `files` allowlist, and declares its CTF tooling as dual-use with a root [`DISCLOSURE`](DISCLOSURE). This follows REA's packaging discipline, not its product configuration. CTF skills, Kali profiles, the non-sudo `ctfagent` account, scoped tools and explicit setup confirmation remain intact. Policy declaration is not npm approval.
 
-Until npm validation completes, `npm i ctf-agent` does not install the working MCP, and the IDE setup's version-pinned `npx` launch cannot fetch `ctf-agent@0.1.0` from npm.
+Verify from **Windows PowerShell**, not a Linux/WSL Node process:
+
+```powershell
+npm ci
+npm run prepublishOnly
+npm run verify:package
+npm pack --dry-run --json
+```
+
+`prepublishOnly` runs the full Node test suite and source package audit; `prepack` repeats the audit before packing. `verify:package` creates a real tarball, installs it with production dependencies in a fresh temporary project, checks its CLI shim, initializes all four IDE clients in a temporary home, compares bundled guidance, initializes a challenge scope, and checks MCP tools and out-of-scope rejection. It does not install Kali, scan targets or change real IDE configuration.
+
+### Stage in CI, approve with 2FA
+
+[npm's dual-use policy](https://docs.npmjs.com/policies/dual-use) prohibits direct CI publishing with OIDC or a bypass-2FA token. `.github/workflows/publish.yml` therefore verifies on Windows and runs **`npm stage publish` only**. It uses npm 11.21.1 and OIDC, with no `NPM_TOKEN` secret. A GitHub release or manual workflow dispatch stages a candidate; neither makes it publicly installable.
+
+Before running that workflow, the package owner must configure [npm trusted publishing](https://docs.npmjs.com/trusted-publishers) for `ctf-agent`:
+
+- GitHub owner: `nvtruongops`; repository: `CTF-Agent`; workflow filename: `publish.yml`.
+- Permit `npm stage publish`, not direct `npm publish`; require 2FA for promotion. No GitHub environment name is configured by this workflow.
+- Keep the intended release at `0.1.0`; do not automatically bump it because it is not public yet. Inspect any existing `0.1.0` staged candidate while logged in: these source edits do not update its tarball. If it contains the old files, the maintainer must review and reject that candidate with 2FA before restaging the corrected archive, subject to npm's version rules. Never automatically reject candidates or approve an outdated tarball.
+
+After reviewing the workflow output and tarball, the maintainer performs the authenticated steps locally (these are manual instructions, not automatic scripts):
+
+```powershell
+npm login
+npm stage list ctf-agent --json
+npm stage view <stage-id> --json
+npm stage approve <stage-id>
+npm view ctf-agent@0.1.0 version dist.integrity --registry=https://registry.npmjs.org
+```
+
+Approval requires the maintainer's 2FA. npm may still validate/review the package; a successful staging run is not publication. After the public version lookup succeeds, test `npm install ctf-agent@0.1.0` in a clean project before announcing availability. The IDE installer pins MCP launches to the installed package version, so its `npx` launcher also requires that version to be public. No credentials are stored in the repository. Account configuration, 2FA and npm review cannot be supplied by repository metadata alone.
 
 ## Development checks
 

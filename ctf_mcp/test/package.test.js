@@ -51,6 +51,7 @@ test('npm package contains only runtime and CTF guidance, never workspace or sec
   const allowed = (path) => path === 'package.json'
     || path === 'README.md'
     || path === 'LICENSE'
+    || path === 'DISCLOSURE'
     || runtimeFiles.has(path)
     || /^\.agents\/skills\/ctf-[^/]+\/.+\.md$/i.test(path)
     || /^\.agents\/(references|rules)\/.+\.md$/i.test(path);
@@ -58,6 +59,7 @@ test('npm package contains only runtime and CTF guidance, never workspace or sec
 
   assert.ok(files.includes('ctf_mcp/cli.js'));
   assert.ok(files.includes('LICENSE'));
+  assert.ok(files.includes('DISCLOSURE'));
   assert.ok(files.includes('.agents/skills/ctf-solve-challenge/SKILL.md'));
   assert.ok(files.includes('.agents/skills/ctf-solve-report/SKILL.md'));
   assert.ok(files.some((path) => path.startsWith('.agents/skills/ctf-web/')));
@@ -65,6 +67,14 @@ test('npm package contains only runtime and CTF guidance, never workspace or sec
   assert.ok(files.some((path) => path.startsWith('.agents/rules/')));
   assert.deepEqual(files.filter((path) => !allowed(path)), []);
   assert.deepEqual(files.filter((path) => forbidden.test(path)), []);
+});
+
+test('npm package declares dual-use content and packs its disclosure', () => {
+  const metadata = JSON.parse(readFileSync(new URL('../../package.json', import.meta.url), 'utf8'));
+  assert.deepEqual(metadata.contentPolicy, { class: 'dual-use' });
+  assert.equal(metadata.publishConfig?.access, 'public');
+  assert.ok(metadata.files.includes('DISCLOSURE'));
+  assert.ok(packedFiles().includes('DISCLOSURE'));
 });
 
 test('package audit rejects packet artifacts and private-key material', () => {
@@ -77,9 +87,11 @@ test('package audit rejects packet artifacts and private-key material', () => {
 
   try {
     for (const relativePath of runtimeFiles) put(relativePath);
-    put('package.json', '{"private":false,"license":"MIT"}');
+    const validMetadata = { private: false, license: 'MIT', contentPolicy: { class: 'dual-use' }, files: ['DISCLOSURE'], publishConfig: { access: 'public' } };
+    put('package.json', JSON.stringify(validMetadata));
     put('README.md');
     put('LICENSE', 'MIT License\n');
+    put('DISCLOSURE', 'Authorized CTF competitions and educational labs only.');
     put('.agents/skills/ctf-solve-challenge/SKILL.md');
     put('.agents/references/ctf-triage-ladder.md');
     put('.agents/rules/flag-validation-rules.md');
@@ -92,10 +104,23 @@ test('package audit rejects packet artifacts and private-key material', () => {
     put('package.json', '{"private":true,"license":"MIT"}');
     assert.ok(auditPackageTree(root).some((entry) => entry.includes('private')));
     put('package.json', '{"private":false,"license":"MIT"}');
+    assert.ok(auditPackageTree(root).some((entry) => entry.includes('contentPolicy')));
+    put('package.json', '{"private":false,"license":"MIT","contentPolicy":{"class":"other"},"files":["DISCLOSURE"]}');
+    assert.ok(auditPackageTree(root).some((entry) => entry.includes('contentPolicy')));
+    put('package.json', JSON.stringify({ ...validMetadata, publishConfig: undefined }));
+    assert.ok(auditPackageTree(root).some((entry) => entry.includes('publishConfig.access')));
+    put('package.json', JSON.stringify({ ...validMetadata, publishConfig: { access: 'restricted' } }));
+    assert.ok(auditPackageTree(root).some((entry) => entry.includes('publishConfig.access')));
+    put('package.json', JSON.stringify({ ...validMetadata, files: [] }));
+    assert.ok(auditPackageTree(root).some((entry) => entry.includes('allowlist')));
+    put('package.json', JSON.stringify(validMetadata));
+    rmSync(path.join(root, 'DISCLOSURE'));
+    assert.ok(auditPackageTree(root).some((entry) => entry.includes('DISCLOSURE')));
+    put('DISCLOSURE', 'Authorized CTF competitions and educational labs only.');
 
     put('.agents/skills/private/capture.packet');
     put('.agents/references/private-key.md', '-----BEGIN PRIVATE KEY-----');
-    put('.agents/rules/credentials.md', 'api_key = "0123456789abcdef0123456789"');
+    put('.agents/rules/credentials.md', 'api_key = "0123456789abcdef0123456789"'); // gitleaks:allow -- synthetic audit-rejection fixture
     put('.agents/skills/unrelated/SKILL.md', 'unrelated');
     const violations = auditPackageTree(root);
     assert.ok(violations.some((entry) => entry.includes('capture.packet')));
@@ -113,4 +138,16 @@ test('publish lifecycle runs tests and package audit without invoking publish', 
   assert.match(metadata.scripts.prepublishOnly, /node scripts\/package-audit\.js/);
   assert.equal(metadata.scripts.prepack, 'node scripts/package-audit.js');
   assert.doesNotMatch(metadata.scripts.prepublishOnly, /npm publish/);
+  assert.equal(metadata.scripts['verify:package'], 'node scripts/verify-package.js');
+});
+
+test('release workflow verifies on Windows and only stages dual-use packages without a long-lived token', () => {
+  const workflow = readFileSync(new URL('../../.github/workflows/publish.yml', import.meta.url), 'utf8');
+  assert.match(workflow, /runs-on: windows-latest/);
+  assert.match(workflow, /npm run prepublishOnly/);
+  assert.match(workflow, /npm run verify:package/);
+  assert.match(workflow, /npm stage publish/);
+  assert.match(workflow, /id-token: write/);
+  assert.doesNotMatch(workflow, /\bnpm publish\b|secrets\.NPM_TOKEN|NODE_AUTH_TOKEN/);
+  assert.match(workflow, /--tag "\$env:NPM_TAG"/);
 });

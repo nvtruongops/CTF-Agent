@@ -3,6 +3,12 @@
   "name": "ctf-agent",
   "version": "0.1.0",
   "license": "MIT",
+  "contentPolicy": {
+    "class": "dual-use"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "author": "nvtruongops",
   "repository": {
     "type": "git",
@@ -33,6 +39,7 @@
   "scripts": {
     "ctf-agent": "node ctf_mcp/cli.js",
     "test": "node --test ctf_mcp/test/*.test.js",
+    "verify:package": "node scripts/verify-package.js",
     "prepack": "node scripts/package-audit.js",
     "prepublishOnly": "npm test && node scripts/package-audit.js"
   },
@@ -41,6 +48,7 @@
     "ctf_mcp/tool-manifest.json",
     "ctf_mcp/tools/*.js",
     "ctf_mcp/tools/*.py",
+    "DISCLOSURE",
     ".agents/skills/**/*.md",
     ".agents/references/**/*.md",
     ".agents/rules/**/*.md"

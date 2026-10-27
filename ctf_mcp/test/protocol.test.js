@@ -1,8 +1,11 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { Client, InMemoryTransport } from '@modelcontextprotocol/client';
 import { StdioClientTransport } from '@modelcontextprotocol/client/stdio';
 import test from 'node:test';
 import { createServer } from '../server.js';
+
+const { version } = JSON.parse(readFileSync(new URL('../../package.json', import.meta.url), 'utf8'));
 
 test('stdio MCP exposes a health tool with a verifiable server identity', async () => {
   const client = new Client({ name: 'ctf-agent-test', version: '0.1.0' });
@@ -48,7 +51,7 @@ test('stdio MCP exposes a health tool with a verifiable server identity', async 
     assert.deepEqual(JSON.parse(text), {
       name: 'ctf-agent',
       status: 'alive',
-      version: '0.1.0',
+      version,
     });
 
     const cryptoResult = await client.callTool({
@@ -101,7 +104,7 @@ test('health reports liveness without probing WSL readiness', async () => {
     assert.deepEqual(JSON.parse(text), {
       name: 'ctf-agent',
       status: 'alive',
-      version: '0.1.0',
+      version,
     });
     assert.equal(wslCalls, 0);
   } finally {

@@ -328,8 +328,8 @@ for xid, blk in sorted(set(snaps)):
 import hashlib
 from Cryptodome.Cipher import AES
 
-# Pre-poisoning key value (found in earlier snapshot)
-authentic_key_hex = "39f520679fd68654500f9cd44e8caed2bc897a3227dc297c4520336de2a59dd7"
+# Use the pre-poisoning key recovered from the challenge's earlier snapshot.
+authentic_key_hex = input("Recovered challenge key (hex): ").strip()
 key = hashlib.pbkdf2_hmac('sha256', bytes.fromhex(authentic_key_hex), salt, iterations)
 cipher = AES.new(key, AES.MODE_CBC, iv)
 plaintext = cipher.decrypt(encrypted_flag)

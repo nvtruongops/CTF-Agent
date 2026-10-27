@@ -1,5 +1,6 @@
 import { McpServer } from '@modelcontextprotocol/server';
 import { serveStdio } from '@modelcontextprotocol/server/stdio';
+import { readFileSync } from 'node:fs';
 import * as z from 'zod/v4';
 import { doctor } from './doctor.js';
 import { loadManifest } from './manifest.js';
@@ -11,6 +12,8 @@ import { registerNetworkTools } from './tools/network.js';
 import { registerWorkspaceTool } from './tools/workspace.js';
 import { registerCtfdTools } from './tools/ctfd.js';
 
+const { version } = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
+
 export function createServer({
   manifest = loadManifest(),
   projectRoot = process.cwd(),
@@ -19,7 +22,7 @@ export function createServer({
   fetchImpl,
   env,
 } = {}) {
-  const server = new McpServer({ name: 'ctf-agent', version: '0.1.0' });
+  const server = new McpServer({ name: 'ctf-agent', version });
 
   server.registerTool(
     'ctf_mcp_health',
@@ -30,7 +33,7 @@ export function createServer({
     async () => ({
       content: [{
         type: 'text',
-        text: JSON.stringify({ name: 'ctf-agent', status: 'alive', version: '0.1.0' }),
+        text: JSON.stringify({ name: 'ctf-agent', status: 'alive', version }),
       }],
     }),
   );
