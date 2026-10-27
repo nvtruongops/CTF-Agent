@@ -17,7 +17,7 @@ test('native prerequisite installer refuses an unprivileged apply before touchin
 test('Windows clone bootstrap previews without writing configuration or requiring Windows Node in its process', { skip: process.platform !== 'win32' }, () => {
   const home = mkdtempSync(path.join(os.tmpdir(), 'ctf bootstrap '));
   try {
-    const result = spawnSync('powershell.exe', ['-NoLogo', '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', path.join(root, 'setup.ps1'), '-Client', 'opencode'], {
+    const result = spawnSync('powershell.exe', ['-NoLogo', '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', path.join(root, 'setup.ps1'), '-Scope', 'global', '-Client', 'opencode'], {
       cwd: root, encoding: 'utf8', timeout: 30_000,
       env: { ...process.env, USERPROFILE: home, LOCALAPPDATA: home, PATH: `${process.env.SystemRoot}\\System32;${process.env.SystemRoot}\\System32\\WindowsPowerShell\\v1.0` },
     });
@@ -35,7 +35,7 @@ test('Windows clone bootstrap previews without writing configuration or requirin
 test('missing WSL reports a pending state and apply stops before configuration writes', { skip: process.platform !== 'win32' }, () => {
   const home = mkdtempSync(path.join(os.tmpdir(), 'ctf pending '));
   try {
-    const args = ['-NoLogo', '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', path.join(root, 'setup.ps1')];
+    const args = ['-NoLogo', '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', path.join(root, 'setup.ps1'), '-Scope', 'global'];
     const options = { cwd: root, encoding: 'utf8', timeout: 30_000, env: { ...process.env, USERPROFILE: home, LOCALAPPDATA: home, PATH: home } };
     const powershell = path.join(process.env.SystemRoot, 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe');
     const preview = spawnSync(powershell, args, options);
@@ -113,7 +113,7 @@ test('bootstrap never executes the ctfagent-owned JavaScript runtime as root', {
         elseif (($args -join ' ') -match 'ide-plan.js') {Write-Output '[]'}
         $global:LASTEXITCODE=0
       }
-      & $env:CTF_TEST_SETUP -Apply -Client opencode
+      & $env:CTF_TEST_SETUP -Apply -Scope global -Client opencode
     `], { encoding: 'utf8', timeout: 30_000, env: { ...process.env, USERPROFILE: home, LOCALAPPDATA: home, CTF_TEST_SETUP: path.join(root, 'setup.ps1') } });
     assert.equal(result.status, 0, result.stderr);
   } finally { rmSync(home, { recursive: true, force: true }); }

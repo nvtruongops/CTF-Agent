@@ -7,7 +7,7 @@ CTF-Agent combines host-neutral CTF skills under `.agents/` with one project-loc
 - Windows PowerShell and WSL2 with the `kali-linux` distribution. Windows Node/Python are **not** needed for clone setup or MCP use.
 - Node.js >=24.11, npm, Python3 and venv **inside Kali**; the bootstrap installs these through APT when missing.
 - Kali mirror, public npm dependency and PyPI access. Frida uses a dedicated user-owned virtual environment, not system pip.
-- OpenCode or another MCP-compatible host. The setup command registers the MCP server in the selected host's user-level configuration.
+- OpenCode or another MCP-compatible host. The PowerShell bootstrap can register the MCP server globally or in the selected workspace; the runtime CLI also supports workspace-local initialization and scoped IDE setup.
 
 The server uses a non-sudo WSL account named `ctfagent`. WSL and a separate Linux account are not a sandbox: network access and host integration may still be available. Use only organizer-authorized targets and review the tool scope before active scans.
 
@@ -18,11 +18,13 @@ Clone-first setup installs a curated local `ctf-agent@0.1.0` tarball into Kali. 
 ```powershell
 git clone https://github.com/nvtruongops/CTF-Agent.git
 cd CTF-Agent
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\setup.ps1 -Client opencode
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\setup.ps1 -Apply -Client opencode
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\setup.ps1 -Scope workspace -WorkspacePath $PWD.Path -Client opencode
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\setup.ps1 -Apply -Scope workspace -WorkspacePath $PWD.Path -Client opencode
 ```
 
-The first command previews without writing. `-Apply` provisions Kali, installs the local runtime, verifies the selected tools, then backs up and merges the chosen Windows agent's configuration and CTF guidance. `-Client` accepts `opencode`, `claude-code`, `codex`, `antigravity` (comma-separated when calling `./setup.ps1` from PowerShell). Reload the agent after setup.
+The first command previews without writing. `-Scope` accepts `workspace` or `global`; it prompts when omitted, but non-interactive runs must provide it. Workspace mode defaults `-WorkspacePath` to `$PWD.Path` and stores only the selected client's MCP configuration and bundled skills in that workspace. Global mode preserves the existing user-level configuration and guidance destinations. `-Apply` provisions Kali, installs the shared WSL runtime and launcher, verifies the selected tools, then backs up and merges the selected registration files. `-Client` accepts `opencode`, `claude-code`, `codex`, `antigravity` (comma-separated when calling `./setup.ps1` from PowerShell). Reload the agent after setup.
+
+For a workspace-specific install, rerun the apply command from that project's root or pass `-WorkspacePath 'C:\path with spaces\project'`. The WSL runtime and Windows launcher remain shared; only MCP registration and skills are workspace-local. To retain user-level registration, use `-Scope global` for both preview and apply.
 
 `-Profile full` is the baseline, not every optional tool. Topic profiles include `web`, `reverse`, `crypto`, `pwn`, `forensics`, `exploitation`, `game_hacking`, `misc`, `osint`, `steganography`, `hardware`, and `competition`. Missing optional tools remain visible in doctor output. Setup keeps unchanged runtime/configuration files and creates numbered `.bak` backups when Windows files change.
 
@@ -38,6 +40,20 @@ wsl --set-version kali-linux 2
 Setup does not self-elevate, reset distributions, change WSL defaults or change global PowerShell execution policy. `-ExecutionPolicy Bypass` applies only to the invoked process. Malformed configs, unrelated `ctf-agent` entries, redirected Windows destinations and stale merge plans are rejected. On failure, fix the reported prerequisite/mirror/permission issue and rerun; do not delete existing scopes or distro data.
 
 The stable Windows launcher is `$env:LOCALAPPDATA\CTF-Agent\ctf-agent.ps1`; it starts `/usr/bin/node` as non-sudo `ctfagent` in Kali, using `/home/ctfagent/.local/share/ctf-agent/runtime/node_modules/ctf-agent/ctf_mcp/cli.js`. No Windows Node/npm or npm-cache path is used. Active project paths and optional CTFd environment variables are forwarded process-locally; credentials are not stored in configuration.
+
+## Register CTF-Agent in a project
+
+From a project directory, preview then apply a workspace-local registration:
+
+```powershell
+$ctf = Join-Path $env:LOCALAPPDATA 'CTF-Agent\ctf-agent.ps1'
+& $ctf init --client opencode --dry-run
+& $ctf init --client opencode --yes
+```
+
+`ctf-agent init` always targets the current directory. Its MCP configuration is stored at `opencode.json` (or an existing `opencode.jsonc`) for OpenCode, `.mcp.json` for Claude Code, `.codex/config.toml` for Codex, and `.agents/mcp_config.json` for Antigravity. It copies bundled skills to `.agents/skills` for OpenCode, Codex, and Antigravity, or `.claude/skills` for Claude Code; it does not install global guidance or edit the repository's root `AGENTS.md`.
+
+The CLI's IDE-registration form of `ctf-agent setup` asks whether to register for the workspace or globally. Use `--scope workspace` or `--scope global` for non-interactive runs; omitting the scope in a non-interactive run is an error. Workspace mode uses the same project paths as `init`, while global mode keeps the existing user-level destinations. `ctf-agent setup --plan|--apply` remains the separate Kali runtime setup flow. `ctf-agent scope init` remains for challenge scope files such as `.ctf-agent/scope.json`; it does not initialize agent MCP configuration.
 
 After setup, run checks from any local challenge project:
 

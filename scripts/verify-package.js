@@ -21,6 +21,7 @@ const env = {
   ...process.env,
   USERPROFILE: home,
   HOME: home,
+  CTF_AGENT_WINDOWS_HOME: home,
   CTF_AGENT_PROJECT_ROOT: project,
   CTF_MCP_CTFD_URL: '',
   CTF_MCP_CTFD_TOKEN: '',
@@ -59,12 +60,26 @@ try {
   const help = npm(['exec', '--offline', '--', 'ctf-agent', '--help']);
   for (const command of ['setup', 'doctor', 'scope init', 'learn', 'mcp']) assert.ok(help.includes(command), command);
   const clients = ['opencode', 'claude-code', 'codex', 'antigravity'];
-  const setupArgs = ['setup', ...clients.flatMap((client) => ['--client', client])];
+  const globalConfigs = ['.config/opencode/opencode.json', '.claude.json', '.codex/config.toml', '.gemini/config/mcp_config.json'];
+  const globalSkills = ['.agents/skills', '.claude/skills', '.gemini/config/skills'];
+  run(process.execPath, [cli, 'init', '--client', 'antigravity', '--yes']);
+  const workspaceConfig = path.join(project, '.agents', 'mcp_config.json');
+  const workspaceSkill = path.join(project, '.agents', 'skills', 'ctf-solve-challenge', 'SKILL.md');
+  assert.ok(existsSync(workspaceConfig), 'Init must write the workspace MCP config.');
+  const workspaceRegistration = JSON.parse(readFileSync(workspaceConfig, 'utf8')).mcpServers['ctf-agent'];
+  assert.equal(workspaceRegistration.command, 'npx');
+  assert.deepEqual(workspaceRegistration.args, ['-y', `ctf-agent@${metadata.version}`, 'mcp']);
+  assert.equal(workspaceRegistration.cwd, '.');
+  assert.deepEqual(readFileSync(workspaceSkill), readFileSync(path.join(installed, '.agents', 'skills', 'ctf-solve-challenge', 'SKILL.md')));
+  for (const relative of globalConfigs) assert.equal(existsSync(path.join(home, relative)), false, relative);
+  for (const relative of globalSkills) assert.equal(existsSync(path.join(home, relative)), false, relative);
+
+  const setupArgs = ['setup', '--scope', 'global', ...clients.flatMap((client) => ['--client', client])];
   const config = path.join(home, '.config', 'opencode', 'opencode.json');
   run(process.execPath, [cli, ...setupArgs, '--dry-run']);
   assert.equal(existsSync(config), false, 'Dry-run must not write IDE configuration.');
   run(process.execPath, [cli, ...setupArgs, '--yes']);
-  for (const relative of ['.config/opencode/opencode.json', '.claude.json', '.codex/config.toml', '.gemini/config/mcp_config.json']) {
+  for (const relative of globalConfigs) {
     assert.ok(readFileSync(path.join(home, relative), 'utf8').includes(`ctf-agent@${metadata.version}`), relative);
   }
   const registration = JSON.parse(readFileSync(config, 'utf8')).mcp.servers['ctf-agent'];

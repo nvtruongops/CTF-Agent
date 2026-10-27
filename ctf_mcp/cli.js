@@ -17,7 +17,7 @@ import path from 'node:path';
 const [command, ...args] = process.argv.slice(2);
 
 function printHelp() {
-  process.stdout.write(`ctf-agent - scoped CTF tools over MCP\n\nUsage:\n  npx ctf-agent setup [--client opencode|claude-code|codex|antigravity ...] [--dry-run] [--skills=false] [--yes]\n  npx ctf-agent setup --all-detected [--dry-run] [--skills=false] [--yes]\n  npm run ctf-agent -- setup --plan|--apply [--profile full]\n  npm run ctf-agent -- doctor [--json]\n  npm run ctf-agent -- scope init --challenge ID --workspace PATH [--target HOST:PORT ...]\n  npm run ctf-agent -- learn --propose --input <json-file> | --list [--topic TOPIC] | --show ID | --promote ID\n  npm run ctf-agent -- mcp\n`);
+  process.stdout.write(`ctf-agent - scoped CTF tools over MCP\n\nUsage:\n  npx ctf-agent init [--client opencode|claude-code|codex|antigravity ...] [--all-detected] [--dry-run] [--skills=false] [--yes]  (initialize this workspace)\n  npx ctf-agent setup [--scope workspace|global] [--client opencode|claude-code|codex|antigravity ...] [--dry-run] [--skills=false] [--yes]\n  npx ctf-agent setup --all-detected [--scope workspace|global] [--dry-run] [--skills=false] [--yes]\n  npm run ctf-agent -- setup --plan|--apply [--profile full]\n  npm run ctf-agent -- doctor [--json]\n  npm run ctf-agent -- scope init --challenge ID --workspace PATH [--target HOST:PORT ...]  (create a challenge scope file)\n  npm run ctf-agent -- learn --propose --input <json-file> | --list [--topic TOPIC] | --show ID | --promote ID\n  npm run ctf-agent -- mcp\n`);
 }
 
 function parseOptions(args, allowed, repeatable = []) {
@@ -194,7 +194,7 @@ async function runKaliSetupCommand(args) {
   if (['failed', 'blocked'].includes(result.status)) process.exitCode = 1;
 }
 
-function parseIdeSetupOptions(args) {
+function parseIdeSetupOptions(args, { allowScope = false } = {}) {
   const options = { clients: [], dryRun: false, installSkills: true, yes: false, allDetected: false };
   for (let index = 0; index < args.length; index += 1) {
     const option = args[index];
@@ -215,6 +215,13 @@ function parseIdeSetupOptions(args) {
     } else if (option === '--yes') {
       if (options.yes) throw new TypeError('duplicate option: --yes');
       options.yes = true;
+    } else if (option === '--scope' && allowScope) {
+      if (Object.hasOwn(options, 'scope')) throw new TypeError('duplicate option: --scope');
+      const scope = args[index + 1];
+      if (!scope || scope.startsWith('--')) throw new TypeError('--scope requires workspace or global');
+      if (scope !== 'workspace' && scope !== 'global') throw new TypeError('--scope must be workspace or global');
+      options.scope = scope;
+      index += 1;
     } else {
       throw new TypeError(`unknown IDE setup option: ${option}`);
     }
@@ -251,6 +258,18 @@ async function promptForClients() {
   }
 }
 
+async function promptForScope() {
+  if (!stdin.isTTY || !stdout.isTTY) throw new TypeError('non-interactive setup requires --scope workspace or --scope global');
+  const prompt = createInterface({ input: stdin, output: stdout });
+  try {
+    const scope = (await prompt.question('Register CTF-Agent for this workspace or globally? [workspace/global] ')).trim().toLowerCase();
+    if (scope !== 'workspace' && scope !== 'global') throw new TypeError('scope must be workspace or global');
+    return scope;
+  } finally {
+    prompt.close();
+  }
+}
+
 function displayIdeSetupPlan(plan, dryRun) {
   process.stdout.write(`CTF-Agent IDE setup ${dryRun ? '(dry run)' : 'plan'}\n`);
   for (const operation of plan.filter((item) => item.action === 'merge')) {
@@ -270,19 +289,24 @@ function displayIdeSetupPlan(plan, dryRun) {
   process.stdout.write(`Total file operations: ${plan.length}\n`);
 }
 
-async function runIdeSetupCommand(args) {
-  const options = parseIdeSetupOptions(args);
+async function runIdeSetupCommand(args, { commandName = 'setup', defaultScope } = {}) {
+  const options = parseIdeSetupOptions(args, { allowScope: commandName === 'setup' });
   if (options.help) {
-    process.stdout.write('Usage: npx ctf-agent setup [--client opencode|claude-code|codex|antigravity ...] [--all-detected] [--dry-run] [--skills=false] [--yes]\n');
+    process.stdout.write(commandName === 'init'
+      ? 'Usage: npx ctf-agent init [--client opencode|claude-code|codex|antigravity ...] [--all-detected] [--dry-run] [--skills=false] [--yes]\n'
+      : 'Usage: npx ctf-agent setup [--scope workspace|global] [--client opencode|claude-code|codex|antigravity ...] [--all-detected] [--dry-run] [--skills=false] [--yes]\n');
     return;
   }
 
   const homeDir = process.env.CTF_AGENT_WINDOWS_HOME || process.env.USERPROFILE || homedir();
+  const scope = defaultScope ?? options.scope ?? await promptForScope();
   const clients = selectedClients(options, homeDir) ?? await promptForClients();
   const packageJson = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
   const plan = buildIdeSetupPlan({
     clients,
     homeDir,
+    ...(scope === 'workspace' ? { workspaceDir: process.cwd() } : {}),
+    scope,
     packageVersion: packageJson.version,
     installSkills: options.installSkills,
     windowsLauncher: process.env.CTF_AGENT_WINDOWS_LAUNCHER || undefined,
@@ -302,6 +326,10 @@ async function runIdeSetupCommand(args) {
   }
   const result = applyIdeSetupPlan(plan, { confirm });
   process.stdout.write(result.applied ? `Applied ${result.written.length} file operations; backups: ${result.backups.length}\n` : 'No changes applied.\n');
+}
+
+async function runInitCommand(args) {
+  return runIdeSetupCommand(args, { commandName: 'init', defaultScope: 'workspace' });
 }
 
 async function runSetupCommand(args) {
@@ -336,6 +364,11 @@ async function main() {
 
   if (command === 'setup') {
     await runSetupCommand(args);
+    return;
+  }
+
+  if (command === 'init') {
+    await runInitCommand(args);
     return;
   }
 

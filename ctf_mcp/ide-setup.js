@@ -69,7 +69,7 @@ function replaceTomlServer(text, entry) {
   return `${text.slice(0, start)}${serialized}\n${text.slice(end).replace(/^\s*\n/, '')}`;
 }
 
-function configFor(client, homeDir, packageVersion, existingText, windowsLauncher) {
+function configFor(client, configPath, packageVersion, existingText, windowsLauncher) {
   const command = windowsLauncher ? {
     command: 'powershell.exe',
     args: ['-NoLogo', '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', windowsLauncher, 'mcp'],
@@ -88,13 +88,13 @@ function configFor(client, homeDir, packageVersion, existingText, windowsLaunche
       },
     };
     return {
-      path: path.join(homeDir, '.config', 'opencode', 'opencode.json'),
+      path: configPath,
       content: mergeJson(existingText, client, ['mcp', 'servers', serverName], entry),
     };
   }
   if (client === 'claude-code') {
     return {
-      path: path.join(homeDir, '.claude.json'),
+      path: configPath,
       content: mergeJson(existingText, client, ['mcpServers', serverName], {
         ...command,
         type: 'stdio',
@@ -107,7 +107,7 @@ function configFor(client, homeDir, packageVersion, existingText, windowsLaunche
   }
   if (client === 'antigravity') {
     return {
-      path: path.join(homeDir, '.gemini', 'config', 'mcp_config.json'),
+      path: configPath,
       content: mergeJson(existingText, client, ['mcpServers', serverName], {
         ...command,
         cwd: '.',
@@ -121,7 +121,7 @@ function configFor(client, homeDir, packageVersion, existingText, windowsLaunche
     env_vars: ['CTF_MCP_CTFD_URL', 'CTF_MCP_CTFD_TOKEN'],
   };
   return {
-    path: path.join(homeDir, '.codex', 'config.toml'),
+    path: configPath,
     content: replaceTomlServer(existingText, tomlEntry),
   };
 }
@@ -137,17 +137,47 @@ function readExisting(filePath) {
   }
 }
 
-function openCodeConfigPath(homeDir) {
-  const json = path.join(homeDir, '.config', 'opencode', 'opencode.json');
-  const jsonc = path.join(homeDir, '.config', 'opencode', 'opencode.jsonc');
+function assertNoReparsePointAncestors(directory) {
+  const absolute = path.resolve(directory);
+  const root = path.parse(absolute).root;
+  let current = root;
+  for (const segment of path.relative(root, absolute).split(path.sep).filter(Boolean)) {
+    current = path.join(current, segment);
+    try {
+      if (lstatSync(current).isSymbolicLink()) throw new TypeError(`workspace path contains a symbolic link or reparse point: ${current}`);
+    } catch (error) {
+      if (error.code !== 'ENOENT') throw error;
+      break;
+    }
+  }
+}
+
+function assertWorkspaceDestination(workspaceDir, destination) {
+  if (typeof workspaceDir !== 'string' || !path.isAbsolute(workspaceDir) || typeof destination !== 'string' || !path.isAbsolute(destination)) {
+    throw new TypeError('workspace root and destination must be absolute paths');
+  }
+  const root = path.resolve(workspaceDir);
+  const target = path.resolve(destination);
+  const relative = path.relative(root, target);
+  if (!relative || relative === '..' || relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative)) {
+    throw new TypeError(`workspace destination escapes workspaceDir: ${destination}`);
+  }
+  assertNoReparsePointAncestors(root);
+  assertNoReparsePointAncestors(path.dirname(target));
+}
+
+function openCodeConfigPath(rootDir, scope = 'global') {
+  const directory = scope === 'workspace' ? rootDir : path.join(rootDir, '.config', 'opencode');
+  const json = path.join(directory, 'opencode.json');
+  const jsonc = path.join(directory, 'opencode.jsonc');
   const existing = [json, jsonc].filter((filePath) => readExisting(filePath) !== null);
-  if (existing.length > 1) throw new TypeError('multiple OpenCode global config files found; keep only opencode.json or opencode.jsonc');
+  if (existing.length > 1) throw new TypeError(`multiple OpenCode ${scope} config files found; keep only opencode.json or opencode.jsonc`);
   return existing[0] ?? json;
 }
 
-function guidanceFiles(root) {
+function guidanceFiles(root, groups = ['skills', 'references', 'rules']) {
   const result = [];
-  for (const group of ['skills', 'references', 'rules']) {
+  for (const group of groups) {
     const groupPath = path.join(root, '.agents', group);
     const visit = (directory) => {
       for (const item of readdirSync(directory, { withFileTypes: true })) {
@@ -162,7 +192,10 @@ function guidanceFiles(root) {
   return result;
 }
 
-function clientRoots(client, homeDir) {
+function clientRoots(client, homeDir, scope, workspaceDir) {
+  if (scope === 'workspace') {
+    return { skills: path.join(workspaceDir, client === 'claude-code' ? '.claude' : '.agents', 'skills') };
+  }
   if (client === 'claude-code') {
     return { skills: path.join(homeDir, '.claude', 'skills'), support: path.join(homeDir, '.claude') };
   }
@@ -172,11 +205,31 @@ function clientRoots(client, homeDir) {
   return { skills: path.join(homeDir, '.agents', 'skills'), support: path.join(homeDir, '.agents') };
 }
 
-export function buildIdeSetupPlan({ clients, homeDir, packageVersion, installSkills = true, windowsLauncher }) {
+function configPathFor(client, rootDir, scope) {
+  if (client === 'opencode') return openCodeConfigPath(rootDir, scope);
+  if (scope === 'workspace') {
+    return client === 'claude-code'
+      ? path.join(rootDir, '.mcp.json')
+      : client === 'codex'
+        ? path.join(rootDir, '.codex', 'config.toml')
+        : path.join(rootDir, '.agents', 'mcp_config.json');
+  }
+  return client === 'claude-code'
+    ? path.join(rootDir, '.claude.json')
+    : client === 'codex'
+      ? path.join(rootDir, '.codex', 'config.toml')
+      : path.join(rootDir, '.gemini', 'config', 'mcp_config.json');
+}
+
+export function buildIdeSetupPlan({ clients, homeDir, workspaceDir, scope = 'global', packageVersion, installSkills = true, windowsLauncher }) {
   if (!Array.isArray(clients) || clients.length === 0 || clients.some((client) => !clientIds.has(client))) {
     throw new TypeError('select one or more supported clients: opencode, claude-code, codex, antigravity');
   }
   if (typeof homeDir !== 'string' || !path.isAbsolute(homeDir)) throw new TypeError('homeDir must be an absolute path');
+  if (scope !== 'global' && scope !== 'workspace') throw new TypeError('scope must be global or workspace');
+  if (scope === 'workspace' && (typeof workspaceDir !== 'string' || !path.isAbsolute(workspaceDir))) {
+    throw new TypeError('workspaceDir must be an absolute path');
+  }
   if (windowsLauncher !== undefined && (typeof windowsLauncher !== 'string' || !path.win32.isAbsolute(windowsLauncher) || /[\0\r\n]/.test(windowsLauncher) || !windowsLauncher.endsWith('ctf-agent.ps1'))) {
     throw new TypeError('windowsLauncher must be an absolute Windows ctf-agent.ps1 path');
   }
@@ -186,18 +239,15 @@ export function buildIdeSetupPlan({ clients, homeDir, packageVersion, installSki
 
   const operations = new Map();
   for (const client of new Set(clients)) {
-    const roots = clientRoots(client, homeDir);
-    const configPath = client === 'opencode'
-      ? openCodeConfigPath(homeDir)
-      : client === 'claude-code'
-        ? path.join(homeDir, '.claude.json')
-        : client === 'codex'
-          ? path.join(homeDir, '.codex', 'config.toml')
-          : path.join(homeDir, '.gemini', 'config', 'mcp_config.json');
+    const rootDir = scope === 'workspace' ? workspaceDir : homeDir;
+    const roots = clientRoots(client, homeDir, scope, workspaceDir);
+    const configPath = configPathFor(client, rootDir, scope);
+    if (scope === 'workspace') assertWorkspaceDestination(workspaceDir, configPath);
     const originalContent = readExisting(configPath);
     const emptyConfig = client === 'codex' ? '' : '{}\n';
-    const configuration = configFor(client, homeDir, packageVersion, originalContent ?? emptyConfig, windowsLauncher);
+    const configuration = configFor(client, configPath, packageVersion, originalContent ?? emptyConfig, windowsLauncher);
     operations.set(configPath, {
+      ...(scope === 'workspace' ? { workspaceDir } : {}),
       client,
       clients: [client],
       path: configPath,
@@ -207,17 +257,19 @@ export function buildIdeSetupPlan({ clients, homeDir, packageVersion, installSki
     });
 
     if (!installSkills) continue;
-    for (const source of guidanceFiles(packageRoot)) {
+    for (const source of guidanceFiles(packageRoot, scope === 'workspace' ? ['skills'] : undefined)) {
       const relative = path.relative(path.join(packageRoot, '.agents'), source);
       const destination = relative.startsWith(`skills${path.sep}`)
         ? path.join(roots.skills, path.relative(path.join(packageRoot, '.agents', 'skills'), source))
         : path.join(roots.support, relative);
+      if (scope === 'workspace') assertWorkspaceDestination(workspaceDir, destination);
       const current = readExisting(destination);
       const operation = operations.get(destination);
       if (operation) {
         operation.clients.push(client);
       } else {
         operations.set(destination, {
+          ...(scope === 'workspace' ? { workspaceDir } : {}),
           client,
           clients: [client],
           path: destination,
@@ -247,6 +299,7 @@ export function applyIdeSetupPlan(plan, { confirm, fsImpl = { copyFileSync, exis
 
   const pending = plan.filter((operation) => operation.originalContent !== operation.content);
   for (const operation of pending) {
+    if (operation.workspaceDir !== undefined) assertWorkspaceDestination(operation.workspaceDir, operation.path);
     let current = null;
     try {
       const stat = fsImpl.lstatSync(operation.path);

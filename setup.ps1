@@ -1,9 +1,27 @@
 param(
     [switch]$Apply,
     [ValidateSet('opencode', 'claude-code', 'codex', 'antigravity')][string[]]$Client = @('opencode'),
-    [ValidateSet('full', 'web', 'reverse', 'crypto', 'pwn', 'forensics', 'exploitation', 'game_hacking', 'misc', 'osint', 'steganography', 'hardware', 'competition')][string]$Profile = 'full'
+    [ValidateSet('full', 'web', 'reverse', 'crypto', 'pwn', 'forensics', 'exploitation', 'game_hacking', 'misc', 'osint', 'steganography', 'hardware', 'competition')][string]$Profile = 'full',
+    [ValidateSet('global', 'workspace')][string]$Scope,
+    [string]$WorkspacePath
 )
 $ErrorActionPreference = 'Stop'
+if ([string]::IsNullOrWhiteSpace($Scope)) {
+    try { $Scope = Read-Host 'Registration scope (workspace/global)' }
+    catch { throw 'Scope is required for non-interactive setup; pass -Scope workspace or -Scope global.' }
+}
+if ($Scope -notin @('workspace', 'global')) { throw 'Choose -Scope workspace or -Scope global.' }
+if ($Scope -eq 'workspace') {
+    if ([string]::IsNullOrWhiteSpace($WorkspacePath)) { $WorkspacePath = $PWD.Path }
+    $fullWorkspacePath = [IO.Path]::GetFullPath($WorkspacePath)
+    $inputRoot = [IO.Path]::GetPathRoot($WorkspacePath).Replace('/', '\')
+    if (![IO.Path]::IsPathRooted($WorkspacePath) -or
+        ![String]::Equals($inputRoot, [IO.Path]::GetPathRoot($fullWorkspacePath), [StringComparison]::OrdinalIgnoreCase) -or
+        !(Test-Path -LiteralPath $WorkspacePath -PathType Container)) {
+        throw 'WorkspacePath must name an existing absolute directory.'
+    }
+    $WorkspacePath = $fullWorkspacePath
+} elseif ($WorkspacePath) { throw '-WorkspacePath is only valid with -Scope workspace.' }
 $repo = $PSScriptRoot
 $launcher = Join-Path $env:LOCALAPPDATA 'CTF-Agent\ctf-agent.ps1'
 $runtime = '/home/ctfagent/.local/share/ctf-agent/runtime/node_modules/ctf-agent/ctf_mcp/cli.js'
@@ -16,10 +34,12 @@ $plan = [ordered]@{
     status = $(if ($ready) { 'ready_to_apply' } else { 'pending_wsl2' })
     distribution = 'kali-linux'
     runtimeUser = 'ctfagent'
+    scope = $Scope
+    workspacePath = $(if ($Scope -eq 'workspace') { $WorkspacePath } else { $null })
     windowsClients = @($Client)
     profile = $Profile
     launcher = $launcher
-    actions = @('Verify/install native Linux Node >=24.11, npm, Python3 and venv', 'Install curated local tarball as ctfagent', 'Apply selected Kali tool profile and verify readiness', 'Back up and merge selected Windows agent configuration and CTF guidance')
+    actions = @('Verify/install native Linux Node >=24.11, npm, Python3 and venv', 'Install curated local tarball as ctfagent', 'Apply selected Kali tool profile and verify readiness', 'Back up and merge selected Windows agent MCP configuration and scope-appropriate bundled guidance')
 }
 $plan | ConvertTo-Json -Depth 5
 if (!$Apply) { return }
@@ -47,7 +67,12 @@ Invoke-Kali -UserName ctfagent -CommandArgs @('/usr/bin/env', $nativePath, '/usr
 $linuxHome = Convert-KaliPath $env:USERPROFILE
 $clientArgs = @()
 foreach ($id in $Client) { $clientArgs += @('--client', $id) }
-$ide = @('/usr/bin/env', $nativePath, "CTF_AGENT_WINDOWS_HOME=$linuxHome", "CTF_AGENT_WINDOWS_HOME_NATIVE=$env:USERPROFILE", "CTF_AGENT_WINDOWS_LAUNCHER=$launcher", '/usr/bin/node', '/home/ctfagent/.local/share/ctf-agent/runtime/node_modules/ctf-agent/ctf_mcp/ide-plan.js') + @($Client)
+if ($Scope -eq 'workspace') {
+    $linuxWorkspace = Convert-KaliPath $WorkspacePath
+    $ide = @('/usr/bin/env', $nativePath, "CTF_AGENT_WINDOWS_HOME=$linuxHome", "CTF_AGENT_WINDOWS_HOME_NATIVE=$env:USERPROFILE", "CTF_AGENT_WINDOWS_WORKSPACE=$linuxWorkspace", "CTF_AGENT_WINDOWS_WORKSPACE_NATIVE=$WorkspacePath", "CTF_AGENT_WINDOWS_LAUNCHER=$launcher", '/usr/bin/node', '/home/ctfagent/.local/share/ctf-agent/runtime/node_modules/ctf-agent/ctf_mcp/ide-plan.js', '--scope', $Scope) + @($Client)
+} else {
+    $ide = @('/usr/bin/env', $nativePath, "CTF_AGENT_WINDOWS_HOME=$linuxHome", "CTF_AGENT_WINDOWS_HOME_NATIVE=$env:USERPROFILE", "CTF_AGENT_WINDOWS_LAUNCHER=$launcher", '/usr/bin/node', '/home/ctfagent/.local/share/ctf-agent/runtime/node_modules/ctf-agent/ctf_mcp/ide-plan.js', '--scope', $Scope) + @($Client)
+}
 $planJson = & wsl.exe --distribution kali-linux --user ctfagent --exec @ide
 if ($LASTEXITCODE -ne 0) { throw 'Cannot safely preview Windows agent configuration; nothing was replaced.' }
 $operations = ($planJson -join "`n") | ConvertFrom-Json
@@ -70,5 +95,5 @@ if (Test-Path -LiteralPath $launcher) {
     }
 } else { Copy-Item -LiteralPath $source -Destination $launcher }
 . (Join-Path $repo 'scripts\apply-ide-plan.ps1')
-Apply-CtfIdePlan -Plan $operations -HomeDirectory $env:USERPROFILE -Clients $Client -RepositoryRoot $repo
+Apply-CtfIdePlan -Plan $operations -HomeDirectory $env:USERPROFILE -Clients $Client -RepositoryRoot $repo -Scope $Scope -WorkspacePath $WorkspacePath
 Write-Output 'CTF-Agent WSL setup complete. Reload the selected agent to connect its local MCP server.'
